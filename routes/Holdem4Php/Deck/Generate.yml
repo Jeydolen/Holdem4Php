@@ -1,0 +1,45 @@
+info:
+  name: Generate
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: http://127.0.0.1:8000/deck/generate
+  body:
+    type: json
+    data: |-
+      {
+        "maxSize": 52,
+        "generationType": "automatic",
+        "cardGenerationConfig": {
+          "ranks": [
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10",
+            "J",
+            "Q",
+            "K",
+            "A"
+          ],
+          "symbols": [
+            "C",
+            "D",
+            "H",
+            "S"
+          ]
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

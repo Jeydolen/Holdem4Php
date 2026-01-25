@@ -1,0 +1,284 @@
+info:
+  name: Pop
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: http://127.0.0.1:8000/deck/pop/2
+  body:
+    type: json
+    data: |-
+      {
+        "cards": [
+          {
+            "rank": "2",
+            "symbol": "C",
+            "weight": 0
+          },
+          {
+            "rank": "2",
+            "symbol": "D",
+            "weight": 0
+          },
+          {
+            "rank": "2",
+            "symbol": "H",
+            "weight": 0
+          },
+          {
+            "rank": "2",
+            "symbol": "S",
+            "weight": 0
+          },
+          {
+            "rank": "3",
+            "symbol": "C",
+            "weight": 1
+          },
+          {
+            "rank": "3",
+            "symbol": "D",
+            "weight": 1
+          },
+          {
+            "rank": "3",
+            "symbol": "H",
+            "weight": 1
+          },
+          {
+            "rank": "3",
+            "symbol": "S",
+            "weight": 1
+          },
+          {
+            "rank": "4",
+            "symbol": "C",
+            "weight": 2
+          },
+          {
+            "rank": "4",
+            "symbol": "D",
+            "weight": 2
+          },
+          {
+            "rank": "4",
+            "symbol": "H",
+            "weight": 2
+          },
+          {
+            "rank": "4",
+            "symbol": "S",
+            "weight": 2
+          },
+          {
+            "rank": "5",
+            "symbol": "C",
+            "weight": 3
+          },
+          {
+            "rank": "5",
+            "symbol": "D",
+            "weight": 3
+          },
+          {
+            "rank": "5",
+            "symbol": "H",
+            "weight": 3
+          },
+          {
+            "rank": "5",
+            "symbol": "S",
+            "weight": 3
+          },
+          {
+            "rank": "6",
+            "symbol": "C",
+            "weight": 4
+          },
+          {
+            "rank": "6",
+            "symbol": "D",
+            "weight": 4
+          },
+          {
+            "rank": "6",
+            "symbol": "H",
+            "weight": 4
+          },
+          {
+            "rank": "6",
+            "symbol": "S",
+            "weight": 4
+          },
+          {
+            "rank": "7",
+            "symbol": "C",
+            "weight": 5
+          },
+          {
+            "rank": "7",
+            "symbol": "D",
+            "weight": 5
+          },
+          {
+            "rank": "7",
+            "symbol": "H",
+            "weight": 5
+          },
+          {
+            "rank": "7",
+            "symbol": "S",
+            "weight": 5
+          },
+          {
+            "rank": "8",
+            "symbol": "C",
+            "weight": 6
+          },
+          {
+            "rank": "8",
+            "symbol": "D",
+            "weight": 6
+          },
+          {
+            "rank": "8",
+            "symbol": "H",
+            "weight": 6
+          },
+          {
+            "rank": "8",
+            "symbol": "S",
+            "weight": 6
+          },
+          {
+            "rank": "9",
+            "symbol": "C",
+            "weight": 7
+          },
+          {
+            "rank": "9",
+            "symbol": "D",
+            "weight": 7
+          },
+          {
+            "rank": "9",
+            "symbol": "H",
+            "weight": 7
+          },
+          {
+            "rank": "9",
+            "symbol": "S",
+            "weight": 7
+          },
+          {
+            "rank": "10",
+            "symbol": "C",
+            "weight": 8
+          },
+          {
+            "rank": "10",
+            "symbol": "D",
+            "weight": 8
+          },
+          {
+            "rank": "10",
+            "symbol": "H",
+            "weight": 8
+          },
+          {
+            "rank": "10",
+            "symbol": "S",
+            "weight": 8
+          },
+          {
+            "rank": "J",
+            "symbol": "C",
+            "weight": 9
+          },
+          {
+            "rank": "J",
+            "symbol": "D",
+            "weight": 9
+          },
+          {
+            "rank": "J",
+            "symbol": "H",
+            "weight": 9
+          },
+          {
+            "rank": "J",
+            "symbol": "S",
+            "weight": 9
+          },
+          {
+            "rank": "Q",
+            "symbol": "C",
+            "weight": 10
+          },
+          {
+            "rank": "Q",
+            "symbol": "D",
+            "weight": 10
+          },
+          {
+            "rank": "Q",
+            "symbol": "H",
+            "weight": 10
+          },
+          {
+            "rank": "Q",
+            "symbol": "S",
+            "weight": 10
+          },
+          {
+            "rank": "K",
+            "symbol": "C",
+            "weight": 11
+          },
+          {
+            "rank": "K",
+            "symbol": "D",
+            "weight": 11
+          },
+          {
+            "rank": "K",
+            "symbol": "H",
+            "weight": 11
+          },
+          {
+            "rank": "K",
+            "symbol": "S",
+            "weight": 11
+          },
+          {
+            "rank": "A",
+            "symbol": "C",
+            "weight": 12
+          },
+          {
+            "rank": "A",
+            "symbol": "D",
+            "weight": 12
+          },
+          {
+            "rank": "A",
+            "symbol": "H",
+            "weight": 12
+          },
+          {
+            "rank": "A",
+            "symbol": "S",
+            "weight": 12
+          }
+        ],
+        "noDuplicate": true,
+        "maxSize": 52
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

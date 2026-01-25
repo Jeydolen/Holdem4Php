@@ -1,0 +1,9 @@
+# There is 2 possibilities for the card pile generation:
+# 1: individual generation where you specify the rank, symbol and weight of each card
+# 2: automatic generation where you just need to put the ranks and symbol and all combinations will be generated
+# The weight in the second case is determined by ranks order with all symbols equal
+generation_type: automatic # or individual
+cards:
+  ranks: ["2","3","4","5","6","7","8","9","10","J","Q","K","A"]
+  # Club, Diamond, Heart, Spade
+  symbols: ["C", "D", "H", "S"]
