@@ -3,6 +3,8 @@
 namespace App\Game\Hand;
 
 use App\Game\Player;
+use App\Game\CardPile\Deck;
+use App\Game\Hand\Phase\IPhase;
 
 /**
  * A poker hand in this context is a complete round of poker
@@ -27,4 +29,31 @@ class PokerHand
      * @var array
      */
     private array $phases;
+
+    private Deck $deck;
+
+    private int $phase_index = 0;
+
+    public function __construct(array $players, array $phases, Deck $deck)
+    {
+        $this->players = $players;
+        $this->phases = $phases;
+        $this->deck = $deck;
+    }
+
+    public function playPhase()
+    {
+        // Index reset
+        if ($this->phase_index > \sizeof($this->phases)) {
+            $this->phase_index = 0;
+        }
+
+        /**
+         * @var IPhase
+         */
+        $phase = $this->phases[$this->phase_index];
+        $phase->play($this->players, $this->deck);
+
+        $this->phase_index += 1;
+    }
 }
