@@ -1,0 +1,62 @@
+info:
+  name: Create new table rules
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{base_url}}/game/create_table_rules"
+  body:
+    type: json
+    data: |-
+      {
+        "maxPlayers": 4,
+        "tableType": "cash_game",
+        "phases": [
+          {
+            "type":"draw_cards",
+            "drawNumber": 4,
+            "priority": 1,
+            "timeout": 10
+          }, 
+          {
+            "type":"betting_phase",
+            "priority": 1,
+            "timeout": 10
+          }
+        ],
+        "deckRules": {
+          "maxSize": 52,
+          "generationType": "automatic",
+          "cardGenerationConfig": {
+            "ranks": [
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9",
+              "10",
+              "J",
+              "Q",
+              "K",
+              "A"
+            ],
+            "symbols": [
+              "C",
+              "D",
+              "H",
+              "S"
+            ]
+          }
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
