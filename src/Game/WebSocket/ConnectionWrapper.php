@@ -14,7 +14,7 @@ class ConnectionWrapper extends ConnectionInterface
 
     public function close(mixed $data = null, bool $raw = false): void
     {
-        return $this->connection->close($data, $raw);
+        $this->connection->close($data, $raw);
     }
 
     public function send(mixed $sendBuffer, bool $raw = false): bool|null
