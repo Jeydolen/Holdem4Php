@@ -7,7 +7,7 @@ use App\Enum\DeckGenerationTypeEnum;
 use App\Game\Card\Card;
 use Exception;
 
-class DeckGenerator
+class DeckFactory
 {
     private DeckGenerationDTO $deckGenerationDTO;
 
@@ -16,9 +16,13 @@ class DeckGenerator
         $this->deckGenerationDTO = $deckGenerationDTO;
     }
 
-    public function generate(): Deck
+    public function newDeck(): Deck
     {
-        $deckDTO = $this->deckGenerationDTO;
+        return static::create($this->deckGenerationDTO);
+    }
+
+    public static function create(DeckGenerationDTO $deckDTO): Deck
+    {
         $deck = new Deck(maxSize: $deckDTO->maxSize, noDuplicate: $deckDTO->noDuplicate);
 
         if ($deckDTO->generationType === DeckGenerationTypeEnum::AUTOMATIC) {
