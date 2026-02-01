@@ -2,8 +2,12 @@
 
 namespace App\DTO;
 
-use Symfony\Component\Validator\Constraints\NotBlank;
+use App\DTO\Phase\PhaseDTO;
+use App\Enum\TableTypeEnum;
+
+use Symfony\Component\Validator\Constraints\Valid;
 use Symfony\Component\Validator\Constraints\Positive;
+use Symfony\Component\Validator\Constraints\NotBlank;
 
 class TableRulesDTO
 {
@@ -11,13 +15,13 @@ class TableRulesDTO
     #[Positive()]
     public int $maxPlayers;
 
-    // TODO: Make enum with different types (cash game, tournament, ...)
     #[NotBlank()]
-    public string $tableType;
+    public TableTypeEnum $tableType;
 
     #[NotBlank()]
     public DeckGenerationDTO $deckRules;
 
-    #[NotBlank()]
+    /** @var PhaseDTO[] */
+    #[Valid()]
     public array $phases;
 }
