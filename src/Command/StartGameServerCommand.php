@@ -3,16 +3,12 @@
 namespace App\Command;
 
 use App\Game\WebSocket\Server;
-use Psr\Container\ContainerInterface;
+
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Attribute\Argument;
 use Symfony\Component\Console\Attribute\AsCommand;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\DependencyInjection\Container;
+use Workerman\Worker;
 
 #[AsCommand(
     name: "StartGameServer",
@@ -34,8 +30,12 @@ class StartGameServerCommand extends Command
         }
 
         $output->writeln(\sprintf("Game server started on port: %d", $port));
-        $this->server->createServer($port);
+        $worker = $this->server->createServer($port);
 
+        $tables_count = $this->server->loadTables();
+        $output->writeln(\sprintf("Number of tables loaded: %d", $tables_count));
+
+        Worker::runAll();
         return Command::SUCCESS;
     }
 }
