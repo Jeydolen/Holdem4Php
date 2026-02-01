@@ -7,7 +7,7 @@ use App\DTO\DeckGenerationDTO;
 use App\Game\Player;
 use App\Game\Hand\PokerHand;
 use App\Game\Hand\Phase\IPhase;
-use App\Game\CardPile\DeckGenerator;
+use App\Game\CardPile\DeckFactory;
 
 use App\Game\Table\TableFullException;
 
@@ -19,7 +19,7 @@ class Table
     public readonly int $maxPlayers;
     public readonly array $phases;
 
-    private DeckGenerator $deckGenerator;
+    private DeckFactory $deckFactory;
 
     /**
      * @param int $maxPlayers
@@ -29,7 +29,7 @@ class Table
     {
         $this->maxPlayers = $maxPlayers;
         $this->phases = $phases;
-        $this->deckGenerator = new DeckGenerator($deckGenerationDTO);
+        $this->deckFactory = new DeckFactory($deckGenerationDTO);
     }
 
     public function addPlayer(Player $player): void
@@ -54,8 +54,8 @@ class Table
     public function newHand()
     {
         // Save previous hand in db for the history
-        $this->current_hand;
-        $this->current_hand = new PokerHand($this->players, $this->phases, $this->deckGenerator->generate());
+        // $this->current_hand;
+        $this->current_hand = new PokerHand($this->players, $this->phases, $this->deckFactory->newDeck());
     }
 
     public function start()
