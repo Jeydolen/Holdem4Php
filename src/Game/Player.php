@@ -43,4 +43,9 @@ class Player
         $this->hole_cards->pushCard($card);
         $this->connection->sendJson(["card" => $card]);
     }
+
+    public function bet(): void
+    {
+        $this->connection->sendJson(["bet"]);
+    }
 }

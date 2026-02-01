@@ -6,9 +6,11 @@ use App\Game\CardPile\Deck;
 
 class DrawCardPhase implements IPhase
 {
+    private ?int $timeout;
     private int $drawNumber;
-    public function __construct(int $drawNumber)
+    public function __construct(?int $timeout, int $drawNumber)
     {
+        $this->timeout = $timeout;
         $this->drawNumber = $drawNumber;
     }
 
@@ -21,5 +23,10 @@ class DrawCardPhase implements IPhase
                 $player->pushCard($card);
             }
         }
+    }
+
+    public static function fromArray(array $data): self
+    {
+        return new self($data["timeout"] ?? null, $data["drawNumber"]);
     }
 }
