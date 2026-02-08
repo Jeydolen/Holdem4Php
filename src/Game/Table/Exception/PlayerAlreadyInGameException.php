@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Game\Table;
+namespace App\Game\Table\Exception;
 
 use Exception;
 
