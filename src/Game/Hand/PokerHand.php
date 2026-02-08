@@ -43,8 +43,8 @@ class PokerHand
 
     public function playPhase(callable $fn): void
     {
-        // Index out of bound
-        if ($this->phase_index > \sizeof($this->phases)) {
+        // Index out of bound (phase is indexed by 0 so we need to subtract 1 to the array)
+        if ($this->phase_index > (\sizeof($this->phases) - 1)) {
             $fn(["state" => "no_more_phases"]);
             return;
         }
