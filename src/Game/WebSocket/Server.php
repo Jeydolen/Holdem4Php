@@ -34,15 +34,17 @@ class Server
 
     private PhaseFactory $phaseFactory;
 
+    private TableFactory $tableFactory;
+
     public function __construct(
         private SerializerInterface $serializer,
         private TableRulesRepository $tableRulesRepository,
         private LoggerInterface $logger,
-        private TableFactory $tableFactory,
         private TableRegistry $tableRegistry
     ) {
         $this->dispatcher = new EventDispatcher();
         $this->phaseFactory = new PhaseFactory($this->logger, $this->dispatcher);
+        $this->tableFactory = new TableFactory($this->logger, $this->dispatcher);
     }
 
     public function createServer(int $port): Worker
