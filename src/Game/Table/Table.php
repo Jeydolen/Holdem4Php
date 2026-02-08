@@ -88,7 +88,7 @@ class Table
 
     public function start()
     {
-        $this->logger->info("Starting game");
+        $this->logger->info("Starting new hand");
 
         $this->newHand();
         $this->nextPhase();
@@ -104,9 +104,18 @@ class Table
 
     private function update(mixed $data): void
     {
-        if (is_array($data) && !empty($data["state"]) && $data["state"] === "next_phase") {
-            $this->nextPhase();
+        if (is_array($data) && !empty($data["state"])) {
+            if ($data["state"] === "next_phase") {
+                $this->nextPhase();
+                return;
+            }
+
+            if ($data["state"] === "no_more_phases") {
+                $this->logger->info("No more phases in this hand. Waiting for next hand...");
+                return;
+            }
         }
+
 
         $this->broadcastJson(["table_state" => "table_update", "data" => $data]);
     }
