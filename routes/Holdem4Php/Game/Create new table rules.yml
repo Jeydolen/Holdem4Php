@@ -15,7 +15,7 @@ http:
         "phases": [
           {
             "type":"draw_cards",
-            "drawNumber": 4,
+            "drawNumber": 2,
             "priority": 1,
             "timeout": 10
           }, 
