@@ -115,30 +115,22 @@ class Server
 
             $this->handleActions($connection, $json["action"], $data);
         } catch (Exception $e) {
-            $connection->sendJson(["error" => $e->getMessage()]);
+            $connection->sendJson(["error" => $e->getMessage(), "error_type" => get_class($e)]);
         }
     }
 
     private function handleActions(ConnectionWrapper $connection, string $action, string $data): void
     {
-        if ($action === "createTable") {
-            // TODO: Proper role mecanism to create new tables 
-
-            /** @var TableRulesDTO */
-            $table_rules = $this->serializer->deserialize($data, TableRulesDTO::class, "json");
-
-            $this->createNewTable($connection, $table_rules);
-            return;
-        }
-
         // TODO: Make a real search
         if ($action === "listTables") {
             $connection->sendJson(["tables" => $this->tables]);
+            return;
         }
 
-        if ($action === "playerJoin") {
+
+        $data = json_decode($data, associative: true, flags: JSON_THROW_ON_ERROR);
+        if (in_array($action, ["playerJoin", "startGame", "playerGetState"])) {
             // TODO: Change for proper DTO
-            $data = json_decode($data, associative: true, flags: JSON_THROW_ON_ERROR);
             $table_id = $data["table_id"] ?? null;
             if (empty($table_id)) {
                 throw new Exception("Empty table id");
@@ -152,40 +144,32 @@ class Server
 
             // TODO: Proper player identification with JWT
             $user_id = $data["user_id"] ?? null;
-            if (empty($user_id)) {
-                throw new Exception("Undefined user");
+
+            if ($action === "startGame") {
+                $table->start();
+                $connection->send(json_encode(["table_started" => true]));
+                return;
             }
 
-            $table->addPlayer(new Player($user_id, $connection));
-            $connection->send(json_encode(["player_joined" => true]));
-        } else if ($action === "startGame") {
-            // TODO: Change for proper DTO
-            $data = json_decode($data, associative: true, flags: JSON_THROW_ON_ERROR);
-            $table_id = $data["table_id"] ?? null;
-            if (empty($table_id)) {
-                throw new Exception("Empty table id");
+            if ($action === "playerJoin") {
+                if (empty($user_id)) {
+                    throw new Exception("Undefined user");
+                }
+
+                $table->addPlayer(new Player($user_id, $connection));
+                $connection->send(json_encode(["player_joined" => true]));
+                return;
             }
 
-            // TODO: Proper validation before join (not same player twice, ...)
-            $table = $this->tables[$table_id] ?? null;
-            if (empty($table)) {
-                throw new Exception("Table does not exist");
-            }
+            if ($action === "playerGetState") {
+                $player = $table->getPlayer($user_id);
+                if (empty($player)) {
+                    throw new Exception("Player not found");
+                }
 
-            $table->start();
-            $connection->send(json_encode(["table_started" => true]));
+                $player->sendCurrentState();
+                return;
+            }
         }
-    }
-
-    private function createNewTable(ConnectionWrapper $connection, TableRulesDTO $table_rules)
-    {
-        $table_id = uniqid("table");
-        $this->tables[$table_id] = new Table(
-            $table_rules->maxPlayers,
-            $table_rules->phases,
-            $table_rules->deckRules
-        );
-
-        $connection->sendJson(["table_id" => $table_id]);
     }
 }
