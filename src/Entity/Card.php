@@ -4,24 +4,30 @@ namespace App\Entity;
 
 use App\Repository\CardRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\Ignore;
 
 use App\Game\Card\Card as GameCard;
 
+#[Groups("show_extended_card")]
 #[ORM\Entity(repositoryClass: CardRepository::class)]
 class Card
 {
+    #[Groups("show_card")]
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
+    #[Groups("show_card")]
     #[ORM\Column(length: 10)]
     private ?string $rank = null;
 
+    #[Groups("show_card")]
     #[ORM\Column(length: 10)]
     private ?string $symbol = null;
 
+    #[Groups("show_card")]
     #[ORM\Column]
     private ?int $weight = null;
 

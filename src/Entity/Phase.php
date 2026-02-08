@@ -4,27 +4,34 @@ namespace App\Entity;
 
 use App\Repository\PhaseRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
+#[Groups("show_extended_phase")]
 #[ORM\Entity(repositoryClass: PhaseRepository::class)]
 class Phase
 {
+    #[Groups("show_phase")]
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
+    #[Groups("show_phase")]
     #[ORM\Column]
     private ?int $priority = null;
 
+    #[Groups("show_phase")]
     #[ORM\Column]
     private array $additionnal_properties = [];
 
+    #[Groups("show_phase")]
     #[ORM\Column(length: 255)]
     private ?string $type = null;
 
     #[ORM\ManyToOne(inversedBy: 'phases')]
     private ?TableRules $table_rules = null;
 
+    #[Groups("show_phase")]
     #[ORM\Column(nullable: true)]
     private ?int $timeout = null;
 

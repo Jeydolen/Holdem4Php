@@ -6,7 +6,9 @@ use App\Repository\TableRulesRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
+#[Groups("show_extended_rule")]
 #[ORM\Entity(repositoryClass: TableRulesRepository::class)]
 class TableRules
 {
@@ -24,13 +26,13 @@ class TableRules
     /**
      * @var Collection<int, Phase>
      */
-    #[ORM\OneToMany(targetEntity: Phase::class, mappedBy: 'table_rules')]
+    #[ORM\OneToMany(targetEntity: Phase::class, mappedBy: 'table_rules', cascade: ["remove"])]
     private Collection $phases;
 
     /**
      * @var Collection<int, Card>
      */
-    #[ORM\OneToMany(targetEntity: Card::class, mappedBy: 'tableRules')]
+    #[ORM\OneToMany(targetEntity: Card::class, mappedBy: 'tableRules', cascade: ["remove"])]
     private Collection $cards;
 
     public function __construct()
