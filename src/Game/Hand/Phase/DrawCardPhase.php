@@ -16,7 +16,7 @@ class DrawCardPhase implements IPhase
 
     public function play(array $players, Deck $deck): void
     {
-        $this->logger->info("Playing phase", ["phase" => (self::class)]);
+        $this->logger->info("Playing phase", ["phase" => (self::class), "draw_number" => $this->drawNumber]);
 
         // In a draw card phase, we need to add card to players.
         foreach ($players as $player) {
