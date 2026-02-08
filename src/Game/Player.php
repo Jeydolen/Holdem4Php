@@ -2,14 +2,23 @@
 
 namespace App\Game;
 
+use App\Event\PlayerAction;
+
 use App\Game\Card\Card;
 use App\Game\CardPile\ICardPile;
 use App\Game\CardPile\PlayerHoleCards;
 use App\Game\WebSocket\ConnectionWrapper;
-use Psr\Log\LoggerInterface;
 
-class Player
+use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+
+class Player implements EventSubscriberInterface
 {
+    public static function getSubscribedEvents(): array
+    {
+        return [PlayerAction::class => 'onPlayerAction'];
+    }
+
     /**
      * A user is the real account behind a player, we need to make this distinction
      * because a player is connected to a single table but a user might not
@@ -19,13 +28,13 @@ class Player
 
     private ICardPile $hole_cards;
 
-    private ConnectionWrapper $connection;
-
-    public function __construct(string $user, ConnectionWrapper $connection, LoggerInterface $logger)
-    {
+    public function __construct(
+        string $user,
+        private ConnectionWrapper $connection,
+        private LoggerInterface $logger
+    ) {
         // For now user, is just a string for simplicity
         $this->user = $user;
-        $this->connection = $connection;
         $this->hole_cards = new PlayerHoleCards(2, true);
     }
 
@@ -52,9 +61,9 @@ class Player
         $this->sendMessage(["card" => $card]);
     }
 
-    public function bet(): void
+    public function askBet(int $maxBettingAmount, ?int $minBettingAmount = 0): void
     {
-        $this->sendMessage(["action" => "bet"]);
+        $this->sendMessage(["action" => "ask_bet", "max_amount" => $maxBettingAmount, "min_amount" => $minBettingAmount]);
     }
 
     /**
@@ -64,5 +73,14 @@ class Player
     public function sendCurrentState(): void
     {
         $this->sendMessage(["cards" => $this->getHoleCards()]);
+    }
+
+    public function onPlayerAction(PlayerAction $event): void
+    {
+        if ($event->getPlayer() !== $this) {
+            return;
+        }
+
+        $this->logger->info("Player action", ["event" => $event->getEventData(), "player" => $event->getPlayer()->getUserId()]);
     }
 }
