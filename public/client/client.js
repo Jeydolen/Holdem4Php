@@ -8,6 +8,9 @@ class Client {
     /** @var string */
     #user_id;
 
+    /** @var string */
+    #table_id;
+
     constructor(log_element, user_id) {
         this.#log_element = log_element;
         this.#user_id = user_id;
@@ -40,20 +43,28 @@ class Client {
         }
     }
 
+    setTableId(tableId) {
+        this.#table_id = tableId;
+    }
+
     getTables() {
         this.sendJson({ "action": "listTables" });
     }
 
-    connectToTable(tableId) {
-        this.sendJson({ "action": "playerJoin", "table_id": tableId, "user_id": this.#user_id });
+    connectToTable() {
+        this.sendJson({ "action": "playerJoin", "table_id": this.#table_id, "user_id": this.#user_id });
     }
 
-    startGame(tableId) {
-        this.sendJson({ "action": "startGame", "table_id": tableId, "user_id": this.#user_id });
+    startGame() {
+        this.sendJson({ "action": "startGame", "table_id": this.#table_id, "user_id": this.#user_id });
     }
 
-    getState(tableId) {
-        this.sendJson({ "action": "playerGetState", "table_id": tableId, "user_id": this.#user_id });
+    getState() {
+        this.sendJson({ "action": "playerGetState", "table_id": this.#table_id, "user_id": this.#user_id });
+    }
+
+    sendPlayerAction(data) {
+        this.sendJson({ "action": "playerAction", "table_id": this.#table_id, "user_id": this.#user_id, ...data });
     }
 
     sendJson(data) {
@@ -123,31 +134,22 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 document.addEventListener("client_connected", () => {
-    document.querySelectorAll(".client-actions button").forEach(el => {
-        el.disabled = false;
-    });
+    document.querySelectorAll(".client-actions button").forEach(el => { el.disabled = false; });
 
-    document.getElementById("list_tables").onclick = () => {
-        client.getTables();
-    }
+    document.getElementById("list_tables").onclick = () => { client.getTables(); }
 
     document.getElementById("join_table").onclick = () => {
         const table_id = getTableId();
         if (!table_id) { return; }
+
+        client.setTableId(table_id);
+
         client.connectToTable(table_id);
     }
 
-    document.getElementById("start_game").onclick = () => {
-        const table_id = getTableId();
-        if (!table_id) { return; }
-        client.startGame(table_id);
-    }
+    document.getElementById("start_game").onclick = () => { client.startGame(table_id); }
 
-    document.getElementById("get_player_state").onclick = () => {
-        const table_id = getTableId();
-        if (!table_id) { return; }
-        client.getState(table_id);
-    }
+    document.getElementById("get_player_state").onclick = () => { client.getState(table_id); }
 });
 
 document.addEventListener("client_disconnected", () => {
