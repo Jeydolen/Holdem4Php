@@ -9,8 +9,12 @@ use App\Game\Hand\PokerHand;
 use App\Game\Hand\Phase\IPhase;
 use App\Game\CardPile\DeckFactory;
 
-use App\Game\Table\TableFullException;
+use App\Game\Table\Exception\TableFullException;
+use App\Game\Table\Exception\PlayerAlreadyInGameException;
+
 use Psr\Log\LoggerInterface;
+
+use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class Table
 {
@@ -31,6 +35,7 @@ class Table
      */
     public function __construct(
         private LoggerInterface $logger,
+        private EventDispatcher $dispatcher,
         int $maxPlayers,
         array $phases,
         DeckGenerationDTO $deckGenerationDTO
@@ -104,7 +109,7 @@ class Table
 
     private function update(mixed $data): void
     {
-        if (is_array($data) && !empty($data["state"])) {
+        if (\is_array($data) && !empty($data["state"])) {
             if ($data["state"] === "next_phase") {
                 $this->nextPhase();
                 return;
