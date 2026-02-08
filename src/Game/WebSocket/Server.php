@@ -6,16 +6,21 @@ use Exception;
 use JsonException;
 
 use Psr\Log\LoggerInterface;
+
+use Symfony\Component\EventDispatcher\EventDispatcher;
+
 use Workerman\Worker;
 use Workerman\Connection\TcpConnection;
 
-use App\DTO\TableRulesDTO;
 use App\DTO\DeckGenerationDTO;
 
 use App\Enum\DeckGenerationTypeEnum;
 
+use App\Event\PlayerAction;
+
 use App\Game\Player;
-use App\Game\Table\Table;
+use App\Game\Table\TableFactory;
+use App\Game\Table\TableRegistry;
 use App\Game\Hand\Phase\PhaseFactory;
 
 use App\Repository\TableRulesRepository;
@@ -25,16 +30,20 @@ use Symfony\Component\Serializer\SerializerInterface;
 
 class Server
 {
+    private EventDispatcher $dispatcher;
+
+    private PhaseFactory $phaseFactory;
 
     public function __construct(
         private SerializerInterface $serializer,
         private TableRulesRepository $tableRulesRepository,
-        private LoggerInterface $logger
+        private LoggerInterface $logger,
+        private TableFactory $tableFactory,
+        private TableRegistry $tableRegistry
     ) {
+        $this->dispatcher = new EventDispatcher();
+        $this->phaseFactory = new PhaseFactory($this->logger, $this->dispatcher);
     }
-
-    /** @var Table[] */
-    private array $tables = [];
 
     public function createServer(int $port): Worker
     {
@@ -71,7 +80,6 @@ class Server
     public function loadTables(): int
     {
         $this->logger->info("Loading table rules");
-
         $rules = $this->tableRulesRepository->findAll();
         $this->logger->info("Table rules count", ["rules_count" => \sizeof($rules)]);
 
@@ -86,8 +94,7 @@ class Server
             foreach ($phases as $phase) {
                 $this->logger->debug("Creating phase", ["phase" => $phase]);
 
-                $game_phase = PhaseFactory::create(
-                    $this->logger,
+                $game_phase = $this->phaseFactory->create(
                     $phase->getType(),
                     $phase->getTimeout(),
                     $phase->getAdditionnalProperties()
@@ -106,11 +113,13 @@ class Server
             $this->logger->debug("Created deck rules for the table rule", ["deck_rules" => $deck_rules]);
 
             $table_id = uniqid("table");
-            $this->tables[$table_id] = new Table(
-                $this->logger,
-                $rule->getMaxPlayers(),
-                $game_phases,
-                $deck_rules
+            $this->tableRegistry->addTable(
+                $table_id,
+                $this->tableFactory->createTable(
+                    $rule->getMaxPlayers(),
+                    $game_phases,
+                    $deck_rules
+                )
             );
 
             $this->logger->info("Table created", ["table_id" => $table_id]);
@@ -152,13 +161,12 @@ class Server
     {
         // TODO: Make a real search
         if ($action === "listTables") {
-            $connection->sendJson(["tables" => $this->tables]);
+            $connection->sendJson(["tables" => $this->tableRegistry->getAllTables()]);
             return;
         }
 
-
         $data = json_decode($data, associative: true, flags: JSON_THROW_ON_ERROR);
-        if (\in_array($action, ["playerJoin", "startGame", "playerGetState"])) {
+        if (\in_array($action, ["playerJoin", "startGame", "playerGetState", "playerAction"])) {
             // TODO: Change for proper DTO
             $table_id = $data["table_id"] ?? null;
             if (empty($table_id)) {
@@ -166,7 +174,7 @@ class Server
             }
 
             // TODO: Proper validation before join (not same player twice, ...)
-            $table = $this->tables[$table_id] ?? null;
+            $table = $this->tableRegistry->getTable($table_id);
             if (empty($table)) {
                 throw new Exception("Table does not exist");
             }
@@ -186,18 +194,28 @@ class Server
                     throw new Exception("Undefined user");
                 }
 
-                $table->addPlayer(new Player($user_id, $connection, $this->logger));
+                $player = new Player($user_id, $connection, $this->logger);
+                $this->dispatcher->addSubscriber($player);
+
+                $this->logger->info("Listeners", ["listeners" => $this->dispatcher->getListeners(PlayerAction::class)]);
+
+                $table->addPlayer($player);
                 $connection->send(json_encode(["player_joined" => true]));
                 return;
             }
 
-            if ($action === "playerGetState") {
-                $player = $table->getPlayer($user_id);
-                if (empty($player)) {
-                    throw new Exception("Player not found");
-                }
+            $player = $table->getPlayer($user_id);
+            if (empty($player)) {
+                throw new Exception("Player not found");
+            }
 
+            if ($action === "playerGetState") {
                 $player->sendCurrentState();
+                return;
+            }
+
+            if ($action === "playerAction") {
+                $this->dispatcher->dispatch(new PlayerAction($player, $data));
                 return;
             }
         }
