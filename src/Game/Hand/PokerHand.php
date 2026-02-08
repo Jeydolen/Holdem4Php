@@ -41,11 +41,12 @@ class PokerHand
         $this->deck = $deck;
     }
 
-    public function playPhase()
+    public function playPhase(callable $fn): void
     {
-        // Index reset
+        // Index out of bound
         if ($this->phase_index > \sizeof($this->phases)) {
-            $this->phase_index = 0;
+            $fn(["state" => "no_more_phases"]);
+            return;
         }
 
         /**
@@ -55,5 +56,6 @@ class PokerHand
         $phase->play($this->players, $this->deck);
 
         $this->phase_index += 1;
+        $fn(["state" => "next_phase"]);
     }
 }
