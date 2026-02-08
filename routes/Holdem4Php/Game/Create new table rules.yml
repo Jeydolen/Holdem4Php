@@ -21,6 +21,7 @@ http:
           }, 
           {
             "type":"betting_phase",
+            "maxBettingAmount": 100,
             "priority": 1,
             "timeout": 10
           }
