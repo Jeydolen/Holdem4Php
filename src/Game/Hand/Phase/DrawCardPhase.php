@@ -3,9 +3,10 @@
 namespace App\Game\Hand\Phase;
 
 use App\Game\CardPile\Deck;
+
 use Psr\Log\LoggerInterface;
 
-class DrawCardPhase implements IPhase
+class DrawCardPhase extends AbstractPhase
 {
     public function __construct(
         private LoggerInterface $logger,
@@ -33,5 +34,9 @@ class DrawCardPhase implements IPhase
     public static function fromArray(array $data): self
     {
         return new self($data["logger"], $data["timeout"] ?? null, $data["drawNumber"]);
+    }
+
+    public function onPlayerAction(\App\Event\PlayerAction $event): void
+    {
     }
 }
