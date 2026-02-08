@@ -34,14 +34,14 @@ final class GameController extends AbstractController
     #[Route("/create_table_rules", methods: ["POST"])]
     public function createTableRules(#[MapRequestPayload()] TableRulesDTO $tableRulesDTO): JsonResponse
     {
-        $table_rules = new TableRules();
-        $table_rules->setMaxPlayers($tableRulesDTO->maxPlayers);
-        $table_rules->setTableType($tableRulesDTO->tableType->value);
+        $table_rule = new TableRules();
+        $table_rule->setMaxPlayers($tableRulesDTO->maxPlayers);
+        $table_rule->setTableType($tableRulesDTO->tableType->value);
 
-        $this->em->persist($table_rules);
+        $this->em->persist($table_rule);
         foreach ($tableRulesDTO->phases as $phaseDTO) {
             $phase = new Phase();
-            $phase->setTableRules($table_rules);
+            $phase->setTableRules($table_rule);
             $phase->setPriority($phaseDTO->priority);
             $phase->setTimeout($phaseDTO->timeout);
             $phase->setType($phaseDTO->getType());
@@ -59,11 +59,11 @@ final class GameController extends AbstractController
         foreach ($deck->getCards() as $card) {
             $card_entity = Card::fromGameCard($card);
             $this->em->persist($card_entity);
-            $table_rules->addCard($card_entity);
+            $table_rule->addCard($card_entity);
         }
 
         $this->em->flush();
-        return $this->json(["table_rules" => $table_rules,]);
+        return $this->json(["rule" => $table_rule,], context: ["groups" => ["show_extended_rule", "show_phase", "show_card"]]);
     }
 
     private function getAdditionnalProperties(object $object, object|string $baseObject): array
@@ -86,4 +86,27 @@ final class GameController extends AbstractController
         return $result;
     }
 
+    #[Route("/get_all_rules", methods: ["GET"])]
+    public function getAllRules(): JsonResponse
+    {
+        $rules = $this->em->getRepository(TableRules::class)->findAll();
+        return $this->json(["rules" => $rules], context: ["groups" => ["show_extended_rule", "show_phase", "show_card"]]);
+    }
+
+
+    #[Route("/delete_rule/{id}", methods: ["DELETE"])]
+
+    public function deleteRule(int $id): JsonResponse
+    {
+        $rule = $this->em->getRepository(TableRules::class)->findOneBy(["id" => $id]);
+
+        if (empty($rule)) {
+            throw $this->createNotFoundException();
+        }
+
+        $this->em->remove($rule);
+        $this->em->flush();
+
+        return $this->json(["removed" => true, "rule_id" => $id]);
+    }
 }
