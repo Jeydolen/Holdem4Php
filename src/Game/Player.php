@@ -6,6 +6,7 @@ use App\Game\Card\Card;
 use App\Game\CardPile\ICardPile;
 use App\Game\CardPile\PlayerHoleCards;
 use App\Game\WebSocket\ConnectionWrapper;
+use Psr\Log\LoggerInterface;
 
 class Player
 {
@@ -20,7 +21,7 @@ class Player
 
     private ConnectionWrapper $connection;
 
-    public function __construct(string $user, ConnectionWrapper $connection)
+    public function __construct(string $user, ConnectionWrapper $connection, LoggerInterface $logger)
     {
         // For now user, is just a string for simplicity
         $this->user = $user;

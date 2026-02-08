@@ -10,6 +10,7 @@ use App\Game\Hand\Phase\IPhase;
 use App\Game\CardPile\DeckFactory;
 
 use App\Game\Table\TableFullException;
+use Psr\Log\LoggerInterface;
 
 class Table
 {
@@ -28,8 +29,12 @@ class Table
      * @param int $maxPlayers
      * @param IPhase[] $phases
      */
-    public function __construct(int $maxPlayers, array $phases, DeckGenerationDTO $deckGenerationDTO)
-    {
+    public function __construct(
+        private LoggerInterface $logger,
+        int $maxPlayers,
+        array $phases,
+        DeckGenerationDTO $deckGenerationDTO
+    ) {
         $this->maxPlayers = $maxPlayers;
         $this->phases = $phases;
         $this->deckFactory = new DeckFactory($deckGenerationDTO);
@@ -55,6 +60,7 @@ class Table
 
         // TODO: Different condition depending on table type (tournament, cash game, ...)
 
+        $this->logger->info("Player joined", ["player_id" => $player->getUserId()]);
         $this->players[] = $player;
         $this->broadcastJson(["table_state" => "new_player", "player_id" => $player->getUserId()]);
     }
@@ -62,6 +68,7 @@ class Table
     public function removePlayer(Player $player): void
     {
         $this->players = array_filter($this->players, fn(Player $value): bool => $value->getUserId() === $player->getUserId());
+        $this->logger->info("Player removed", ["player_id" => $player->getUserId()]);
     }
 
     public function getPlayer(string $userId): ?Player
@@ -75,17 +82,21 @@ class Table
         // Save previous hand in db for the history
         // $this->current_hand;
         $this->current_hand = new PokerHand($this->players, $this->phases, $this->deckFactory->newDeck());
+        $this->logger->info("New hand");
         $this->broadcastJson(["table_state" => "new_hand"]);
     }
 
     public function start()
     {
+        $this->logger->info("Starting game");
+
         $this->newHand();
         $this->nextPhase();
     }
 
     public function nextPhase()
     {
+        $this->logger->info("Next phase");
         $this->current_hand->playPhase(function (mixed $data): void {
             $this->update($data);
         });

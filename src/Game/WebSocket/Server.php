@@ -5,6 +5,7 @@ namespace App\Game\WebSocket;
 use Exception;
 use JsonException;
 
+use Psr\Log\LoggerInterface;
 use Workerman\Worker;
 use Workerman\Connection\TcpConnection;
 
@@ -27,7 +28,8 @@ class Server
 
     public function __construct(
         private SerializerInterface $serializer,
-        private TableRulesRepository $tableRulesRepository
+        private TableRulesRepository $tableRulesRepository,
+        private LoggerInterface $logger
     ) {
     }
 
@@ -37,19 +39,23 @@ class Server
     public function createServer(int $port): Worker
     {
         $ws_worker = new Worker("websocket://0.0.0.0:$port");
+        $this->logger->info("Worker created and listening on port", ["port" => $port]);
 
         // Emitted when new connection come
         $ws_worker->onConnect = function (TcpConnection $connection) {
+            $this->logger->info("New connection", ["connection_status" => $connection->getStatus()]);
             $this->onConnect(new ConnectionWrapper($connection, $this->serializer));
         };
 
         // Emitted when data received
         $ws_worker->onMessage = function ($connection, $data) {
+            $this->logger->info("New message", ["data" => $data]);
             $this->onMessage(new ConnectionWrapper($connection, $this->serializer), $data);
         };
 
         // Emitted when connection closed
         $ws_worker->onClose = function ($connection) {
+            $this->logger->info("Connection closing", ["connection" => $connection]);
             $conn = new ConnectionWrapper($connection, $this->serializer);
             $conn->sendJson(["connected" => false]);
         };
@@ -64,15 +70,30 @@ class Server
      */
     public function loadTables(): int
     {
+        $this->logger->info("Loading table rules");
+
         $rules = $this->tableRulesRepository->findAll();
-        foreach ($rules as $rule) {
+        $this->logger->info("Table rules count", ["rules_count" => \sizeof($rules)]);
+
+        foreach ($rules as $k => $rule) {
+            $this->logger->debug("Loading new table rule", ["rule_number" => $k]);
+
             // Phases sorted by priority
             $phases = $rule->getPhases();
 
             $game_phases = [];
             // Game phase construction
             foreach ($phases as $phase) {
-                $game_phase = PhaseFactory::create($phase->getType(), $phase->getTimeout(), $phase->getAdditionnalProperties());
+                $this->logger->debug("Creating phase", ["phase" => $phase]);
+
+                $game_phase = PhaseFactory::create(
+                    $this->logger,
+                    $phase->getType(),
+                    $phase->getTimeout(),
+                    $phase->getAdditionnalProperties()
+                );
+
+                $this->logger->info("Game phase created");
                 $game_phases[] = $game_phase;
             }
 
@@ -82,13 +103,20 @@ class Server
             $deck_rules->noDuplicate = false;
             $deck_rules->generationType = DeckGenerationTypeEnum::MANUAL;
 
+            $this->logger->debug("Created deck rules for the table rule", ["deck_rules" => $deck_rules]);
+
             $table_id = uniqid("table");
             $this->tables[$table_id] = new Table(
+                $this->logger,
                 $rule->getMaxPlayers(),
                 $game_phases,
                 $deck_rules
             );
+
+            $this->logger->info("Table created", ["table_id" => $table_id]);
         }
+
+        $this->logger->info("Loaded all table rules");
 
         return \sizeof($rules);
     }
@@ -115,6 +143,7 @@ class Server
 
             $this->handleActions($connection, $json["action"], $data);
         } catch (Exception $e) {
+            $this->logger->error($e);
             $connection->sendJson(["error" => $e->getMessage(), "error_type" => get_class($e)]);
         }
     }
@@ -129,7 +158,7 @@ class Server
 
 
         $data = json_decode($data, associative: true, flags: JSON_THROW_ON_ERROR);
-        if (in_array($action, ["playerJoin", "startGame", "playerGetState"])) {
+        if (\in_array($action, ["playerJoin", "startGame", "playerGetState"])) {
             // TODO: Change for proper DTO
             $table_id = $data["table_id"] ?? null;
             if (empty($table_id)) {
@@ -145,6 +174,7 @@ class Server
             // TODO: Proper player identification with JWT
             $user_id = $data["user_id"] ?? null;
 
+            // TODO: Use real rules for game start
             if ($action === "startGame") {
                 $table->start();
                 $connection->send(json_encode(["table_started" => true]));
@@ -156,7 +186,7 @@ class Server
                     throw new Exception("Undefined user");
                 }
 
-                $table->addPlayer(new Player($user_id, $connection));
+                $table->addPlayer(new Player($user_id, $connection, $this->logger));
                 $connection->send(json_encode(["player_joined" => true]));
                 return;
             }

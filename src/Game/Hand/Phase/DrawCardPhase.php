@@ -3,30 +3,35 @@
 namespace App\Game\Hand\Phase;
 
 use App\Game\CardPile\Deck;
+use Psr\Log\LoggerInterface;
 
 class DrawCardPhase implements IPhase
 {
-    private ?int $timeout;
-    private int $drawNumber;
-    public function __construct(?int $timeout, int $drawNumber)
-    {
-        $this->timeout = $timeout;
-        $this->drawNumber = $drawNumber;
+    public function __construct(
+        private LoggerInterface $logger,
+        private ?int $timeout,
+        private int $drawNumber
+    ) {
     }
 
     public function play(array $players, Deck $deck): void
     {
+        $this->logger->info("Playing phase", ["phase" => (self::class)]);
+
         // In a draw card phase, we need to add card to players.
         foreach ($players as $player) {
             for ($i = 0; $i < $this->drawNumber; $i++) {
                 $card = $deck->pop();
+                $this->logger->debug("Card added to player cards", ["player" => $player, "card" => $card, "card_number" => $i]);
                 $player->pushCard($card);
             }
         }
+
+        $this->logger->info("End phase", ["phase" => (self::class)]);
     }
 
     public static function fromArray(array $data): self
     {
-        return new self($data["timeout"] ?? null, $data["drawNumber"]);
+        return new self($data["logger"], $data["timeout"] ?? null, $data["drawNumber"]);
     }
 }

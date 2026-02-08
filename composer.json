@@ -7,15 +7,16 @@
         "php": ">=8.4",
         "ext-ctype": "*",
         "ext-iconv": "*",
-        "doctrine/doctrine-bundle": "^3.2",
+        "doctrine/doctrine-bundle": "^3.2.2",
         "doctrine/doctrine-migrations-bundle": "^4.0",
-        "doctrine/orm": "^3.6",
-        "phpdocumentor/reflection-docblock": "^6.0",
-        "phpstan/phpdoc-parser": "^2.3",
+        "doctrine/orm": "^3.6.2",
+        "phpdocumentor/reflection-docblock": "^6.0.1",
+        "phpstan/phpdoc-parser": "^2.3.2",
         "symfony/console": "8.0.*",
         "symfony/dotenv": "8.0.*",
-        "symfony/flex": "^2",
+        "symfony/flex": "^2.10",
         "symfony/framework-bundle": "8.0.*",
+        "symfony/monolog-bundle": "^4.0.1",
         "symfony/property-access": "8.0.*",
         "symfony/property-info": "8.0.*",
         "symfony/runtime": "8.0.*",
@@ -23,10 +24,10 @@
         "symfony/serializer": "8.0.*",
         "symfony/validator": "8.0.*",
         "symfony/yaml": "8.0.*",
-        "workerman/workerman": "^5.1"
+        "workerman/workerman": "^5.1.9"
     },
     "require-dev": {
-        "symfony/maker-bundle": "^1.65"
+        "symfony/maker-bundle": "^1.65.1"
     },
     "config": {
         "allow-plugins": {

@@ -3,13 +3,14 @@
 namespace App\Game\Hand\Phase;
 
 use App\Game\CardPile\Deck;
+use Psr\Log\LoggerInterface;
 
 class BettingPhase implements IPhase
 {
-    private ?int $timeout;
-    private function __construct(?int $timeout)
-    {
-        $this->timeout = $timeout;
+    private function __construct(
+        private LoggerInterface $logger,
+        private ?int $timeout
+    ) {
     }
 
     public function play(array $players, Deck $deck): void
@@ -21,6 +22,6 @@ class BettingPhase implements IPhase
 
     public static function fromArray(array $data): self
     {
-        return new self($data["timeout"] ?? null);
+        return new self($data["logger"], $data["timeout"] ?? null);
     }
 }
