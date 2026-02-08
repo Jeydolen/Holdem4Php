@@ -18,40 +18,42 @@ class Client {
         this.#websocket = new WebSocket(`ws://${window.location.hostname}:${port}/`);
         console.log(this.#websocket);
 
+        this.#websocket.onopen = (event) => {
+            if (event.data) {
+                this.#log_element.append(event.data);
+                console.log(event.data);
+            }
+
+            this.getTables();
+            document.dispatchEvent(new CustomEvent("client_connected"));
+        }
+
         this.#websocket.onmessage = (event) => {
             this.#log_element.append(event.data);
             console.log(event.data);
         };
-    }
 
-    connectToTable(tableId) {
-        this.sendJson({ "action": "playerJoin", "table_id": tableId, "user_id": this.#user_id });
-    }
-
-    createNewTable() {
-        const rules = {
-            maxPlayers: 4,
-            tableType: "cash_game",
-            deckRules: {
-                "maxSize": 52,
-                "generationType": "automatic",
-                "cardGenerationConfig": {
-                    "ranks": ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"],
-                    "symbols": ["C", "D", "H", "S"]
-                }
-            },
-            phases: [],
+        this.#websocket.onclose = (event) => {
+            this.#log_element.append(event.data);
+            console.log(event.data);
+            document.dispatchEvent(new CustomEvent("client_disconnected"));
         }
-
-        this.sendJson({ "action": "createTable", ...rules });
     }
 
     getTables() {
         this.sendJson({ "action": "listTables" });
     }
 
+    connectToTable(tableId) {
+        this.sendJson({ "action": "playerJoin", "table_id": tableId, "user_id": this.#user_id });
+    }
+
     startGame(tableId) {
         this.sendJson({ "action": "startGame", "table_id": tableId, "user_id": this.#user_id });
+    }
+
+    getState(tableId) {
+        this.sendJson({ "action": "playerGetState", "table_id": tableId, "user_id": this.#user_id });
     }
 
     sendJson(data) {
@@ -99,6 +101,10 @@ function getTableId() {
 
 let client = null;
 document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".client-actions button").forEach(el => {
+        el.disabled = true;
+    });
+
     document.getElementById("connect_to_server").onclick = () => {
         const port = getPort();
         if (!port) { return; }
@@ -110,14 +116,25 @@ document.addEventListener("DOMContentLoaded", () => {
         client.connect(port);
     }
 
+
+    document.getElementById("clear_log").onclick = () => {
+        document.getElementById("message_log").innerHTML = "";
+    }
+});
+
+document.addEventListener("client_connected", () => {
+    document.querySelectorAll(".client-actions button").forEach(el => {
+        el.disabled = false;
+    });
+
+    document.getElementById("list_tables").onclick = () => {
+        client.getTables();
+    }
+
     document.getElementById("join_table").onclick = () => {
         const table_id = getTableId();
         if (!table_id) { return; }
         client.connectToTable(table_id);
-    }
-
-    document.getElementById("create_new_table").onclick = () => {
-        client.createNewTable();
     }
 
     document.getElementById("start_game").onclick = () => {
@@ -125,4 +142,16 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!table_id) { return; }
         client.startGame(table_id);
     }
+
+    document.getElementById("get_player_state").onclick = () => {
+        const table_id = getTableId();
+        if (!table_id) { return; }
+        client.getState(table_id);
+    }
+});
+
+document.addEventListener("client_disconnected", () => {
+    document.querySelectorAll(".client-actions button").forEach(el => {
+        el.disabled = true;
+    });
 });
