@@ -28,24 +28,40 @@ class Player
         $this->hole_cards = new PlayerHoleCards(2, true);
     }
 
-    public function isSame(Player $player): bool
+    public function getUserId(): string
     {
-        return $this->user == $player->user;
+        // TODO: Adapt when user is a real object
+        return $this->user;
     }
+
 
     public function getHoleCards(): ICardPile
     {
         return $this->hole_cards;
     }
 
+    public function sendMessage(mixed $data): bool|null
+    {
+        return $this->connection->sendJson($data);
+    }
+
     public function pushCard(Card $card): void
     {
         $this->hole_cards->pushCard($card);
-        $this->connection->sendJson(["card" => $card]);
+        $this->sendMessage(["card" => $card]);
     }
 
     public function bet(): void
     {
-        $this->connection->sendJson(["bet"]);
+        $this->sendMessage(["action" => "bet"]);
+    }
+
+    /**
+     * Method called by the client to know is current state (cards, bankroll, ...)
+     * @return void
+     */
+    public function sendCurrentState(): void
+    {
+        $this->sendMessage(["cards" => $this->getHoleCards()]);
     }
 }

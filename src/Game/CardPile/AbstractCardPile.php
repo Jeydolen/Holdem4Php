@@ -51,4 +51,9 @@ abstract class AbstractCardPile implements ICardPile
     {
         return array_find($this->cards, fn(Card $value): bool => $value->equals($card)) !== null;
     }
+
+    public function getCards(): array
+    {
+        return $this->cards;
+    }
 }
