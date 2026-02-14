@@ -170,6 +170,7 @@ document.addEventListener("client_connected", () => {
         if (!table_id) { return; }
 
         client.setTableId(table_id);
+        document.querySelectorAll(".client-actions button").forEach(el => { el.disabled = false; });
         client.connectToTable();
     }
 
