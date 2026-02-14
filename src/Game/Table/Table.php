@@ -134,12 +134,13 @@ class Table implements EventSubscriberInterface
         $this->logger->info("Starting new hand");
 
         $this->newHand();
-        $this->nextPhase();
+        $this->current_hand->playPhase();
     }
 
     public function nextPhase()
     {
         $this->logger->info("Next phase");
+        $this->current_hand->nextPhase();
         $this->current_hand->playPhase();
     }
 

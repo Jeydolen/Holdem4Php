@@ -2,13 +2,16 @@
 
 namespace App\Game\Hand\Phase;
 
+use App\Event\PhaseState;
 use App\Game\CardPile\Deck;
 
 use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class DrawCardPhase extends AbstractPhase
 {
     public function __construct(
+        private EventDispatcher $dispatcher,
         protected LoggerInterface $logger,
         private ?int $timeout,
         private int $drawNumber
@@ -28,12 +31,12 @@ class DrawCardPhase extends AbstractPhase
             }
         }
 
-        $this->logger->info("End phase", ["phase" => (self::class)]);
+        $this->dispatcher->dispatch(new PhaseState("next_phase"));
     }
 
     public static function fromArray(array $data): self
     {
-        return new self($data["logger"], $data["timeout"] ?? null, $data["drawNumber"]);
+        return new self($data["dispatcher"], $data["logger"], $data["timeout"] ?? null, $data["drawNumber"]);
     }
 
     public function onPlayerAction(\App\Event\PlayerAction $event): void

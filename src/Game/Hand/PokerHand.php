@@ -58,8 +58,6 @@ class PokerHand
          */
         $phase = $this->phases[$this->phase_index];
         $phase->play($this->players, $this->deck);
-        $this->nextPhase();
-        $this->dispatcher->dispatch(new PhaseState("next_phase"));
     }
 
     public function nextPhase()
