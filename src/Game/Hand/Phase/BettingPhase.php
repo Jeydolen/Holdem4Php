@@ -2,10 +2,10 @@
 
 namespace App\Game\Hand\Phase;
 
-use App\Event\PhaseState;
 use App\Game\Player;
 use App\Game\CardPile\Deck;
 
+use App\Event\PhaseState;
 use App\Event\PlayerAction;
 
 use Psr\Log\LoggerInterface;

@@ -197,12 +197,7 @@ class Server
                 }
 
                 $player = new Player($user_id, $connection, $this->logger);
-                $this->dispatcher->addSubscriber($player);
-
-                $this->logger->info("Listeners", ["listeners" => $this->dispatcher->getListeners(PlayerAction::class)]);
-
                 $table->addPlayer($player);
-                $connection->send(json_encode(["player_joined" => true]));
                 return;
             }
 

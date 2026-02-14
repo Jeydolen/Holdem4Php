@@ -44,6 +44,11 @@ class Player implements EventSubscriberInterface
         return $this->user;
     }
 
+    public function isSame(Player $player): bool
+    {
+        return $this->user == $player->user && $this->connection == $player->connection;
+    }
+
 
     public function getHoleCards(): ICardPile
     {
