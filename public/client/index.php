@@ -34,6 +34,10 @@
         </div>
     </div>
 
+    <div class="tables"></div>
+
+    <div class="player-actions"></div>
+
     <div id="message_log"></div>
 </body>
 
