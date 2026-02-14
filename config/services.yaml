@@ -21,6 +21,7 @@ services:
         exclude:
             - '../src/Game/Player.php'
             - '../src/Game/Hand/Phase/'
+            - '../src/Game/Table/Table.php'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

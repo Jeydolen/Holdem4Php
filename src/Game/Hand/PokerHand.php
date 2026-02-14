@@ -2,9 +2,13 @@
 
 namespace App\Game\Hand;
 
+use App\Event\PhaseState;
+
 use App\Game\Player;
 use App\Game\CardPile\Deck;
 use App\Game\Hand\Phase\IPhase;
+
+use Symfony\Component\EventDispatcher\EventDispatcher;
 
 /**
  * A poker hand in this context is a complete round of poker
@@ -34,18 +38,18 @@ class PokerHand
 
     private int $phase_index = 0;
 
-    public function __construct(array $players, array $phases, Deck $deck)
+    public function __construct(array $players, array $phases, Deck $deck, private EventDispatcher $dispatcher)
     {
         $this->players = $players;
         $this->phases = $phases;
         $this->deck = $deck;
     }
 
-    public function playPhase(callable $fn): void
+    public function playPhase(): void
     {
         // Index out of bound (phase is indexed by 0 so we need to subtract 1 to the array)
         if ($this->phase_index > (\sizeof($this->phases) - 1)) {
-            $fn(["state" => "no_more_phases"]);
+            $this->dispatcher->dispatch(new PhaseState("no_more_phases"));
             return;
         }
 
@@ -54,8 +58,12 @@ class PokerHand
          */
         $phase = $this->phases[$this->phase_index];
         $phase->play($this->players, $this->deck);
+        $this->nextPhase();
+        $this->dispatcher->dispatch(new PhaseState("next_phase"));
+    }
 
+    public function nextPhase()
+    {
         $this->phase_index += 1;
-        $fn(["state" => "next_phase"]);
     }
 }
