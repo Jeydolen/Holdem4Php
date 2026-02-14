@@ -11,6 +11,8 @@ class Client {
     /** @var string */
     #table_id;
 
+    #tables = [];
+
     constructor(log_element, user_id) {
         this.#log_element = log_element;
         this.#user_id = user_id;
@@ -34,11 +36,16 @@ class Client {
         this.#websocket.onmessage = (event) => {
             this.#log_element.append(event.data);
             console.log(event.data);
+
+            document.dispatchEvent(new CustomEvent("client_message", { detail: JSON.parse(event.data) }));
+
+            if (event.data.tables) {
+                this.#tables = event.data.tables;
+                return;
+            }
         };
 
         this.#websocket.onclose = (event) => {
-            this.#log_element.append(event.data);
-            console.log(event.data);
             document.dispatchEvent(new CustomEvent("client_disconnected"));
         }
     }
@@ -157,3 +164,42 @@ document.addEventListener("client_disconnected", () => {
         el.disabled = true;
     });
 });
+
+document.addEventListener("client_message", (e) => {
+    console.log(e.detail)
+    if (e.detail.tables) {
+        createTableList(e.detail.tables);
+    }
+});
+
+function createTableList(tables) {
+    const table_container = document.querySelector(".tables");
+    table_container.innerHTML = "";
+
+    const clear_btn = document.createElement("button");
+    clear_btn.innerText = "X";
+    clear_btn.onclick = () => {
+        table_container.innerHTML = "";
+    }
+    table_container.append(clear_btn);
+
+    for (const entry of Object.entries(tables)) {
+        const table_id = entry[0];
+
+        const container = document.createElement("div");
+
+        const title = document.createElement("h1");
+        title.innerText = table_id;
+        container.append(title);
+
+        const join_btn = document.createElement("button");
+        join_btn.innerText = "Join table";
+        join_btn.onclick = () => {
+            document.getElementById("table_id").value = table_id;
+            client.setTableId(table_id);
+            client.connectToTable(table_id);
+        }
+        container.append(join_btn);
+        table_container.append(container);
+    }
+}
