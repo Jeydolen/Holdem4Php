@@ -18,7 +18,7 @@ class DrawCardPhase extends AbstractPhase
     ) {
     }
 
-    public function play(array $players, Deck $deck): void
+    public function play(array &$players, Deck &$deck): void
     {
         $this->logger->info("Playing phase", ["phase" => (self::class), "draw_number" => $this->drawNumber]);
 

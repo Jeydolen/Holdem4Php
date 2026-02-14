@@ -8,6 +8,9 @@ use App\Game\CardPile\Deck;
 use App\Event\PhaseState;
 use App\Event\PlayerAction;
 
+use App\Enum\PlayerBettingActionEnum;
+use App\Exception\InvalidPlayerBettingActionException;
+
 use Psr\Log\LoggerInterface;
 
 use Workerman\Timer;
@@ -29,7 +32,7 @@ class BettingPhase extends AbstractPhase
     ) {
     }
 
-    public function play(array $players, Deck $deck): void
+    public function play(array &$players, Deck &$deck): void
     {
         $this->logger->info("Playing phase", ["phase" => (self::class), "max_betting_amount" => $this->maxBettingAmount]);
 
@@ -78,11 +81,20 @@ class BettingPhase extends AbstractPhase
             return;
         }
 
+        // TODO: Handle player action
+        $data = $event->getEventData();
+        if (!empty($data["betting_action"])) {
+            $player_betting_action = PlayerBettingActionEnum::tryFrom($data["betting_action"]);
+            if (empty($player_betting_action)) {
+                throw new InvalidPlayerBettingActionException();
+            }
+
+            // Check if the action is possible (depends on previous player actions)
+        }
+
         if (!empty($this->timerId)) {
             Timer::del($this->timerId);
         }
-
-        // TODO: Handle player action
 
         // Ask next player
         $this->nextPlayer();

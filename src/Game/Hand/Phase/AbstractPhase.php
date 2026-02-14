@@ -2,6 +2,7 @@
 
 namespace App\Game\Hand\Phase;
 
+use App\Game\CardPile\Deck;
 use App\Event\PlayerAction;
 use Psr\Log\LoggerInterface;
 
@@ -15,6 +16,8 @@ abstract class AbstractPhase implements IPhase, EventSubscriberInterface
     {
         return [PlayerAction::class => "onPlayerAction"];
     }
+
+    abstract public function play(array &$players, Deck &$deck): void;
 
     abstract public function onPlayerAction(PlayerAction $event): void;
 }
