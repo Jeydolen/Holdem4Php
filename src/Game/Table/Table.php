@@ -75,7 +75,7 @@ class Table implements EventSubscriberInterface
                 // If the connection is different, we need to replace the previous player instance
                 // (this is in the case of a reconnection)
                 $this->logger->debug("The player is connecting with another connection, removing previous player instance", ["previous_player_id" => $currentPlayer->getUserId()]);
-                $this->removePlayer($currentPlayer);
+                $this->removePlayer($currentPlayer, true);
             }
         }
 
@@ -92,11 +92,25 @@ class Table implements EventSubscriberInterface
         $this->broadcastJson(["table_state" => "new_player", "player_id" => $player->getUserId(), "player_count" => \sizeof($this->players)]);
     }
 
-    public function removePlayer(Player $player): void
+    /**
+     * Remove a player from the table
+     * @param Player $player The player to remove
+     * @param bool $reconnect When this flag is set, no broadcast is sent because the player is connecting from another connection
+     * @return void
+     */
+    public function removePlayer(Player $player, bool $reconnect): void
     {
         $this->players = array_filter($this->players, fn(Player $value): bool => $value->getUserId() !== $player->getUserId());
         $this->logger->info("Player removed", ["player_id" => $player->getUserId(), "player_count" => \sizeof($this->players)]);
-        $player->sendMessage(["table_action" => "kick_player"]);
+
+        $event_message = ["table_state" => "remove_player", "player_id" => $player->getUserId(), "player_count" => \sizeof($this->players)];
+
+        if (!$reconnect) {
+            $this->broadcastJson($event_message);
+        } else {
+            // This works to disconnect the previous player without disconnecting the new one
+            $player->sendMessage($event_message);
+        }
     }
 
     public function getPlayer(string $userId): ?Player
