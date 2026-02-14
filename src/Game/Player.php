@@ -77,10 +77,11 @@ class Player implements EventSubscriberInterface
         $this->sendMessage(["card" => $card]);
     }
 
-    public function askBet(int $maxBettingAmount, ?int $minBettingAmount = 0, ?DateTimeInterface $timeoutDate = null): void
+    public function askBet(int $maxBettingAmount, array $legalActions, ?int $minBettingAmount = 0, ?DateTimeInterface $timeoutDate = null): void
     {
         $this->sendMessage([
             "action" => "ask_bet",
+            "legal_actions" => $legalActions,
             "max_amount" => $maxBettingAmount,
             "min_amount" => $minBettingAmount,
             "timeout_date" => $timeoutDate->format(DateTime::ISO8601)

@@ -11,6 +11,10 @@ use App\Event\PlayerAction;
 use App\Enum\PlayerBettingActionEnum;
 use App\Exception\InvalidPlayerBettingActionException;
 
+use App\Service\BettingManager;
+
+use DateInterval;
+use DateTimeImmutable;
 use Psr\Log\LoggerInterface;
 
 use Workerman\Timer;
@@ -22,7 +26,7 @@ class BettingPhase extends AbstractPhase
     private array $players = [];
     private ?int $timerId = null;
     private int $currentPlayerIndex = 0;
-    private int $currentMinAmount = 0;
+    private BettingManager $bettingManager;
 
     private function __construct(
         private EventDispatcher $dispatcher,
@@ -30,6 +34,7 @@ class BettingPhase extends AbstractPhase
         private ?int $timeout,
         private int $maxBettingAmount
     ) {
+        $this->bettingManager = new BettingManager($this->dispatcher);
     }
 
     public function play(array &$players, Deck &$deck): void
@@ -45,7 +50,9 @@ class BettingPhase extends AbstractPhase
     {
         $this->logger->info("Asking player to bet", ["player_id" => $player->getUserId()]);
 
+        $timeoutDate = null;
         if (!empty($this->timeout)) {
+            $timeoutDate = new DateTimeImmutable()->add(DateInterval::createFromDateString("+ {$this->timeout} seconds"));
             $this->timerId = Timer::add($this->timeout, function () use ($player) {
                 $this->logger->info("Player did not bet, folding player", ["player_id" => $player->getUserId()]);
                 $this->dispatcher->dispatch(new PhaseState("player_fold", ["player_id" => $player->getUserId()]));
@@ -54,7 +61,12 @@ class BettingPhase extends AbstractPhase
             $this->logger->info("Timeout timer added", ["timerId" => $this->timerId, "timeout" => $this->timeout]);
         }
 
-        $player->askBet($this->maxBettingAmount, $this->currentMinAmount);
+        $player->askBet(
+            $this->maxBettingAmount,
+            $this->bettingManager->computeLegalActions(),
+            $this->bettingManager->getMinimalLegalBet(),
+            $timeoutDate
+        );
     }
 
     private function nextPlayer(): void
@@ -69,7 +81,6 @@ class BettingPhase extends AbstractPhase
         $this->dispatcher->dispatch(new PhaseState("next_phase"));
     }
 
-
     public static function fromArray(array $data): self
     {
         return new self($data["dispatcher"], $data["logger"], $data["timeout"] ?? null, $data["maxBettingAmount"]);
@@ -81,7 +92,6 @@ class BettingPhase extends AbstractPhase
             return;
         }
 
-        // TODO: Handle player action
         $data = $event->getEventData();
         if (!empty($data["betting_action"])) {
             $player_betting_action = PlayerBettingActionEnum::tryFrom($data["betting_action"]);
@@ -89,7 +99,7 @@ class BettingPhase extends AbstractPhase
                 throw new InvalidPlayerBettingActionException();
             }
 
-            // Check if the action is possible (depends on previous player actions)
+            $this->bettingManager->play($event->getPlayer()->getUserId(), $player_betting_action, $data["betting_amount"] ?? null);
         }
 
         if (!empty($this->timerId)) {

@@ -11,6 +11,4 @@ enum PlayerBettingActionEnum: string
     case BET = "bet";
 
     case CALL = "call";
-
-    case ALL_IN = "all_in";
 }
