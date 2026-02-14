@@ -9,6 +9,8 @@ use App\Game\CardPile\ICardPile;
 use App\Game\CardPile\PlayerHoleCards;
 use App\Game\WebSocket\ConnectionWrapper;
 
+use DateTime;
+use DateTimeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -75,9 +77,14 @@ class Player implements EventSubscriberInterface
         $this->sendMessage(["card" => $card]);
     }
 
-    public function askBet(int $maxBettingAmount, ?int $minBettingAmount = 0): void
+    public function askBet(int $maxBettingAmount, ?int $minBettingAmount = 0, ?DateTimeInterface $timeoutDate = null): void
     {
-        $this->sendMessage(["action" => "ask_bet", "max_amount" => $maxBettingAmount, "min_amount" => $minBettingAmount]);
+        $this->sendMessage([
+            "action" => "ask_bet",
+            "max_amount" => $maxBettingAmount,
+            "min_amount" => $minBettingAmount,
+            "timeout_date" => $timeoutDate->format(DateTime::ISO8601)
+        ]);
     }
 
     /**
