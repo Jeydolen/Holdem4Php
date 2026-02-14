@@ -4,6 +4,7 @@ namespace App\Game\Table;
 
 use App\DTO\DeckGenerationDTO;
 
+use App\Event\PhaseState;
 use App\Game\Player;
 use App\Game\Hand\PokerHand;
 use App\Game\Hand\Phase\IPhase;
@@ -15,9 +16,15 @@ use App\Game\Table\Exception\PlayerAlreadyInGameException;
 use Psr\Log\LoggerInterface;
 
 use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
-class Table
+class Table implements EventSubscriberInterface
 {
+    public static function getSubscribedEvents(): array
+    {
+        return [PhaseState::class => 'onPhaseStateUpdate'];
+    }
+
     /**
      * @var Player[]
      */
@@ -43,6 +50,7 @@ class Table
         $this->maxPlayers = $maxPlayers;
         $this->phases = $phases;
         $this->deckFactory = new DeckFactory($deckGenerationDTO);
+        $this->dispatcher->addSubscriber($this);
     }
 
     public function broadcastJson(mixed $data): void
@@ -86,7 +94,7 @@ class Table
     {
         // Save previous hand in db for the history
         // $this->current_hand;
-        $this->current_hand = new PokerHand($this->players, $this->phases, $this->deckFactory->newDeck());
+        $this->current_hand = new PokerHand($this->players, $this->phases, $this->deckFactory->newDeck(), $this->dispatcher);
         $this->logger->info("New hand");
         $this->broadcastJson(["table_state" => "new_hand"]);
     }
@@ -102,26 +110,21 @@ class Table
     public function nextPhase()
     {
         $this->logger->info("Next phase");
-        $this->current_hand->playPhase(function (mixed $data): void {
-            $this->update($data);
-        });
+        $this->current_hand->playPhase();
     }
 
-    private function update(mixed $data): void
+    public function onPhaseStateUpdate(PhaseState $event): void
     {
-        if (\is_array($data) && !empty($data["state"])) {
-            if ($data["state"] === "next_phase") {
-                $this->nextPhase();
-                return;
-            }
-
-            if ($data["state"] === "no_more_phases") {
-                $this->logger->info("No more phases in this hand. Waiting for next hand...");
-                return;
-            }
+        if ($event->getAction() === "next_phase") {
+            $this->nextPhase();
+            return;
         }
 
+        if ($event->getAction() === "no_more_phases") {
+            $this->logger->info("No more phases in this hand. Waiting for next hand...");
+            return;
+        }
 
-        $this->broadcastJson(["table_state" => "table_update", "data" => $data]);
+        $this->broadcastJson(["table_state" => "table_update", "data" => $event->getEventData(), "action" => $event->getAction()]);
     }
 }

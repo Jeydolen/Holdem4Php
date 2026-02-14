@@ -9,7 +9,7 @@ use Psr\Log\LoggerInterface;
 class DrawCardPhase extends AbstractPhase
 {
     public function __construct(
-        private LoggerInterface $logger,
+        protected LoggerInterface $logger,
         private ?int $timeout,
         private int $drawNumber
     ) {

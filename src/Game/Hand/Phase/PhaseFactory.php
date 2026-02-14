@@ -25,7 +25,7 @@ class PhaseFactory
 
         // There might be a better way to do this...
         $data["logger"] = $this->logger;
-        $data["dispatch"] = $this->dispatcher;
+        $data["dispatcher"] = $this->dispatcher;
         $data["timeout"] = $timeout;
 
         $class = self::$map[$type];
