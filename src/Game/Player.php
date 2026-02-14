@@ -35,6 +35,15 @@ class Player implements EventSubscriberInterface
     ) {
         // For now user, is just a string for simplicity
         $this->user = $user;
+        $this->resetState();
+    }
+
+    /**
+     * Reset player state to play another PokerHand
+     * @return void
+     */
+    public function resetState()
+    {
         $this->hole_cards = new PlayerHoleCards(2, true);
     }
 

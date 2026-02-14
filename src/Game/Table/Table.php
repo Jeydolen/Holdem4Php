@@ -124,6 +124,10 @@ class Table implements EventSubscriberInterface
     {
         // Save previous hand in db for the history
         // $this->current_hand;
+        foreach ($this->players as $player) {
+            $player->resetState();
+        }
+
         $this->current_hand = new PokerHand($this->players, $this->phases, $this->deckFactory->newDeck(), $this->dispatcher);
         $this->logger->info("New hand");
         $this->broadcastJson(["table_state" => "new_hand"]);
