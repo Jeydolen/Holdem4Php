@@ -60,8 +60,23 @@ class PokerHand
         $phase->play($this->players, $this->deck);
     }
 
-    public function nextPhase()
+    public function nextPhase(): void
     {
         $this->phase_index += 1;
+    }
+
+    public function foldPlayer(string $playerId): void
+    {
+        $newPlayers = [];
+        foreach ($this->players as $player) {
+            if ($player->getUserId() === $playerId) {
+                $newPlayers[] = $player;
+                continue;
+            }
+
+            $this->folded_players[] = $player;
+        }
+
+        $this->players = $newPlayers;
     }
 }

@@ -150,14 +150,18 @@ class Table implements EventSubscriberInterface
 
     public function onPhaseStateUpdate(PhaseState $event): void
     {
-        if ($event->getAction() === "next_phase") {
-            $this->nextPhase();
-            return;
-        }
-
         if ($event->getAction() === "no_more_phases") {
             $this->logger->info("No more phases in this hand. Waiting for next hand...");
             return;
+        }
+
+        if ($event->getAction() === "next_phase") {
+            $this->nextPhase();
+        }
+
+
+        if ($event->getAction() === "player_fold") {
+            $this->current_hand->foldPlayer($event->getEventData()["player_id"]);
         }
 
         $this->broadcastJson(["table_state" => "table_update", "data" => $event->getEventData(), "action" => $event->getAction()]);
