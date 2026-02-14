@@ -31,11 +31,27 @@ class BettingPhase extends AbstractPhase
 
     public function play(array $players, Deck $deck): void
     {
-        $this->logger->info("Playing betting phase");
+        $this->logger->info("Playing phase", ["phase" => (self::class), "max_betting_amount" => $this->maxBettingAmount]);
 
         $this->players = $players;
         // We ask every player to bet, they can either call, check, raise or fold
         $this->askPlayer($players[$this->currentPlayerIndex]);
+    }
+
+    private function askPlayer(Player $player)
+    {
+        $this->logger->info("Asking player to bet", ["player_id" => $player->getUserId()]);
+
+        if (!empty($this->timeout)) {
+            $this->timerId = Timer::add($this->timeout, function () use ($player) {
+                $this->logger->info("Player did not bet, folding player", ["player_id" => $player->getUserId()]);
+                $this->dispatcher->dispatch(new PhaseState("player_fold", ["player_id" => $player->getUserId()]));
+                $this->nextPlayer();
+            }, persistent: false);
+            $this->logger->info("Timeout timer added", ["timerId" => $this->timerId, "timeout" => $this->timeout]);
+        }
+
+        $player->askBet($this->maxBettingAmount, $this->currentMinAmount);
     }
 
     private function nextPlayer(): void
@@ -49,21 +65,7 @@ class BettingPhase extends AbstractPhase
 
         $this->dispatcher->dispatch(new PhaseState("next_phase"));
     }
-    private function askPlayer(Player $player)
-    {
-        $this->logger->info("Asking player to bet", ["player" => $player]);
 
-        if (!empty($this->timeout)) {
-            $this->timerId = Timer::add($this->timeout, function () use ($player) {
-                $this->logger->info("Player did not bet, folding player", ["player" => $player]);
-                $this->dispatcher->dispatch(new PhaseState("player_fold", ["player" => $player->getUserId()]));
-                $this->nextPlayer();
-            });
-            $this->logger->info("Timeout timer added", ["timerId" => $this->timerId, "timeout" => $this->timeout]);
-        }
-
-        $player->askBet($this->maxBettingAmount, $this->currentMinAmount);
-    }
 
     public static function fromArray(array $data): self
     {
