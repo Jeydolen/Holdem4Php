@@ -168,14 +168,13 @@ class Server
         }
 
         $data = json_decode($data, associative: true, flags: JSON_THROW_ON_ERROR);
-        if (\in_array($action, ["playerJoin", "startGame", "playerGetState", "playerAction"])) {
+        if (\in_array($action, ["playerJoin", "playerQuit", "startGame", "playerGetState", "playerAction"])) {
             // TODO: Change for proper DTO
             $table_id = $data["table_id"] ?? null;
             if (empty($table_id)) {
                 throw new Exception("Empty table id");
             }
 
-            // TODO: Proper validation before join (not same player twice, ...)
             $table = $this->tableRegistry->getTable($table_id);
             if (empty($table)) {
                 throw new Exception("Table does not exist");
@@ -191,13 +190,19 @@ class Server
                 return;
             }
 
-            if ($action === "playerJoin") {
+            if ($action === "playerJoin" || $action === "playerQuit") {
                 if (empty($user_id)) {
                     throw new Exception("Undefined user");
                 }
 
                 $player = new Player($user_id, $connection, $this->logger);
-                $table->addPlayer($player);
+
+                if ($action === "playerJoin") {
+                    $table->addPlayer($player);
+                } else if ($action === "playerQuit") {
+                    $table->removePlayer($player, false);
+                }
+
                 return;
             }
 

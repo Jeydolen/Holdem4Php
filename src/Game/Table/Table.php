@@ -106,6 +106,7 @@ class Table implements EventSubscriberInterface
         $event_message = ["table_state" => "remove_player", "player_id" => $player->getUserId(), "player_count" => \sizeof($this->players)];
 
         if (!$reconnect) {
+            $player->sendMessage($event_message);
             $this->broadcastJson($event_message);
         } else {
             // This works to disconnect the previous player without disconnecting the new one

@@ -23,6 +23,7 @@
             <label for="table_id">Table id:</label>
             <input type="text" name="table_id" id="table_id">
             <button id="join_table" type="button">Connect to table</button>
+            <button id="quit_table" type="button">Disconnect from table</button>
         </div>
 
         <div>

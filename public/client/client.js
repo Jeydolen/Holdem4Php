@@ -50,6 +50,14 @@ class Client {
         }
     }
 
+    getPlayerId() {
+        return this.#user_id;
+    }
+
+    getTableId() {
+        return this.#table_id;
+    }
+
     setTableId(tableId) {
         this.#table_id = tableId;
     }
@@ -59,18 +67,32 @@ class Client {
     }
 
     connectToTable() {
+        if (!this.#table_id || this.#table_id.length <= 0) { return; }
+
         this.sendJson({ "action": "playerJoin", "table_id": this.#table_id, "user_id": this.#user_id });
     }
 
+    quitTable() {
+        if (!this.#table_id || this.#table_id.length <= 0) { return; }
+
+        this.sendJson({ "action": "playerQuit", "table_id": this.#table_id, "user_id": this.#user_id });
+    }
+
     startGame() {
+        if (!this.#table_id || this.#table_id.length <= 0) { return; }
+
         this.sendJson({ "action": "startGame", "table_id": this.#table_id, "user_id": this.#user_id });
     }
 
     getState() {
+        if (!this.#table_id || this.#table_id.length <= 0) { return; }
+
         this.sendJson({ "action": "playerGetState", "table_id": this.#table_id, "user_id": this.#user_id });
     }
 
     sendPlayerAction(data) {
+        if (!this.#table_id || this.#table_id.length <= 0) { return; }
+
         this.sendJson({ "action": "playerAction", "table_id": this.#table_id, "user_id": this.#user_id, ...data });
     }
 
@@ -119,9 +141,7 @@ function getTableId() {
 
 let client = null;
 document.addEventListener("DOMContentLoaded", () => {
-    document.querySelectorAll(".client-actions button").forEach(el => {
-        el.disabled = true;
-    });
+    document.querySelectorAll(".client-actions button").forEach(el => { el.disabled = true; });
 
     document.getElementById("connect_to_server").onclick = () => {
         const port = getPort();
@@ -150,25 +170,30 @@ document.addEventListener("client_connected", () => {
         if (!table_id) { return; }
 
         client.setTableId(table_id);
-
-        client.connectToTable(table_id);
+        client.connectToTable();
     }
 
-    document.getElementById("start_game").onclick = () => { client.startGame(table_id); }
+    document.getElementById("quit_table").onclick = () => { client.quitTable(); }
 
-    document.getElementById("get_player_state").onclick = () => { client.getState(table_id); }
+    document.getElementById("start_game").onclick = () => { client.startGame(); }
+
+    document.getElementById("get_player_state").onclick = () => { client.getState(); }
 });
 
 document.addEventListener("client_disconnected", () => {
-    document.querySelectorAll(".client-actions button").forEach(el => {
-        el.disabled = true;
-    });
+    document.querySelectorAll(".client-actions button").forEach(el => { el.disabled = true; });
 });
 
 document.addEventListener("client_message", (e) => {
     console.log(e.detail)
     if (e.detail.tables) {
         createTableList(e.detail.tables);
+        return;
+    }
+
+    if (e.detail.table_state) {
+        handleTableState(e.detail);
+        return;
     }
 });
 
@@ -197,9 +222,18 @@ function createTableList(tables) {
         join_btn.onclick = () => {
             document.getElementById("table_id").value = table_id;
             client.setTableId(table_id);
-            client.connectToTable(table_id);
+            client.connectToTable();
         }
         container.append(join_btn);
         table_container.append(container);
+    }
+}
+
+function handleTableState(data) {
+    console.log("handleTableAction", data);
+    if (data.table_state === "remove_player" && data.player_id == client.getPlayerId()) {
+        document.getElementById("table_id").value = "";
+        client.setTableId("");
+        document.querySelectorAll(".client-actions button").forEach(el => { el.disabled = true; });
     }
 }
