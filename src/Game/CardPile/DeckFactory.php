@@ -33,7 +33,7 @@ class DeckFactory
             }
 
             foreach ($card_gen_config->ranks as $i => $rank) {
-                $weight = $i;
+                $weight = $i + 1;
                 foreach ($card_gen_config->symbols as $symbol) {
                     $card = new Card($rank, $symbol, $weight + 0);
                     $deck->pushCard($card);
