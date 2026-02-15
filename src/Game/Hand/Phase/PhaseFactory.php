@@ -4,11 +4,10 @@ namespace App\Game\Hand\Phase;
 
 use Exception;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class PhaseFactory
 {
-    public function __construct(private LoggerInterface $logger, private EventDispatcher $dispatcher)
+    public function __construct(private LoggerInterface $logger)
     {
     }
 
@@ -26,7 +25,6 @@ class PhaseFactory
 
         // There might be a better way to do this...
         $data["logger"] = $this->logger;
-        $data["dispatcher"] = $this->dispatcher;
         $data["timeout"] = $timeout;
 
         $class = self::$map[$type];

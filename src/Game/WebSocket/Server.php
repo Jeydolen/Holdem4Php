@@ -7,8 +7,6 @@ use JsonException;
 
 use Psr\Log\LoggerInterface;
 
-use Symfony\Component\EventDispatcher\EventDispatcher;
-
 use Workerman\Worker;
 use Workerman\Connection\TcpConnection;
 
@@ -30,8 +28,6 @@ use Symfony\Component\Serializer\SerializerInterface;
 
 class Server
 {
-    private EventDispatcher $dispatcher;
-
     private PhaseFactory $phaseFactory;
 
     private TableFactory $tableFactory;
@@ -42,9 +38,8 @@ class Server
         private LoggerInterface $logger,
         private TableRegistry $tableRegistry
     ) {
-        $this->dispatcher = new EventDispatcher();
-        $this->phaseFactory = new PhaseFactory($this->logger, $this->dispatcher);
-        $this->tableFactory = new TableFactory($this->logger, $this->dispatcher);
+        $this->phaseFactory = new PhaseFactory($this->logger);
+        $this->tableFactory = new TableFactory($this->logger);
     }
 
     public function createServer(int $port): Worker
@@ -217,7 +212,7 @@ class Server
             }
 
             if ($action === "playerAction") {
-                $this->dispatcher->dispatch(new PlayerAction($player, $data));
+                $table->dispatchEvent(new PlayerAction($player, $data));
                 return;
             }
         }

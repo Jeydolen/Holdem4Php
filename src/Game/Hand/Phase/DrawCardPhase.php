@@ -7,12 +7,10 @@ use App\Event\PlayerAction;
 use App\Game\CardPile\Deck;
 
 use Psr\Log\LoggerInterface;
-use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class DrawCardPhase extends AbstractPhase
 {
     public function __construct(
-        private EventDispatcher $dispatcher,
         protected LoggerInterface $logger,
         private ?int $timeout,
         private int $drawNumber
@@ -37,7 +35,7 @@ class DrawCardPhase extends AbstractPhase
 
     public static function fromArray(array $data): self
     {
-        return new self($data["dispatcher"], $data["logger"], $data["timeout"] ?? null, $data["drawNumber"]);
+        return new self($data["logger"], $data["timeout"] ?? null, $data["drawNumber"]);
     }
 
     public function onPlayerAction(PlayerAction $event): void

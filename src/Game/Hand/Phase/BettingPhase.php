@@ -8,10 +8,10 @@ use App\Game\CardPile\Deck;
 use App\Event\PhaseState;
 use App\Event\PlayerAction;
 
+use App\Service\BettingManager;
+
 use App\Enum\PlayerBettingActionEnum;
 use App\Exception\InvalidPlayerBettingActionException;
-
-use App\Service\BettingManager;
 
 use DateInterval;
 use DateTimeImmutable;
@@ -29,13 +29,10 @@ class BettingPhase extends AbstractPhase
     private BettingManager $bettingManager;
 
     private function __construct(
-        private EventDispatcher $dispatcher,
         protected LoggerInterface $logger,
         private ?int $timeout,
         private int $maxBettingAmount
     ) {
-        $this->bettingManager = new BettingManager($this->dispatcher);
-        $this->dispatcher->addSubscriber($this);
     }
 
     public function play(array &$players, Deck &$deck): void
@@ -84,7 +81,16 @@ class BettingPhase extends AbstractPhase
 
     public static function fromArray(array $data): self
     {
-        return new self($data["dispatcher"], $data["logger"], $data["timeout"] ?? null, $data["maxBettingAmount"]);
+        $instance = new self($data["logger"], $data["timeout"] ?? null, $data["maxBettingAmount"]);
+        return $instance;
+    }
+
+    public function withEventDispatcher(EventDispatcher $dispatcher): static
+    {
+        $this->dispatcher = $dispatcher;
+        $this->bettingManager = new BettingManager($dispatcher);
+        $this->dispatcher->addSubscriber($this);
+        return $this;
     }
 
     public function onPlayerAction(PlayerAction $event): void

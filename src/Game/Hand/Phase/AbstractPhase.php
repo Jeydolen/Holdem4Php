@@ -6,10 +6,13 @@ use App\Game\CardPile\Deck;
 use App\Event\PlayerAction;
 use Psr\Log\LoggerInterface;
 
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+
 
 abstract class AbstractPhase implements IPhase, EventSubscriberInterface
 {
+    protected EventDispatcher $dispatcher;
     protected LoggerInterface $logger;
 
     public static function getSubscribedEvents(): array
@@ -20,4 +23,10 @@ abstract class AbstractPhase implements IPhase, EventSubscriberInterface
     abstract public function play(array &$players, Deck &$deck): void;
 
     abstract public function onPlayerAction(PlayerAction $event): void;
+
+    public function withEventDispatcher(EventDispatcher $dispatcher): static
+    {
+        $this->dispatcher = $dispatcher;
+        return $this;
+    }
 }

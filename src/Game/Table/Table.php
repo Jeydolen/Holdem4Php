@@ -15,6 +15,7 @@ use App\Game\Table\Exception\PlayerAlreadyInGameException;
 
 use Psr\Log\LoggerInterface;
 
+use Symfony\Contracts\EventDispatcher\Event;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -49,8 +50,19 @@ class Table implements EventSubscriberInterface
     ) {
         $this->maxPlayers = $maxPlayers;
         $this->phases = $phases;
+
+        // Table has the responsability to provide the event dispatcher to the phases 
+        foreach ($phases as $phase) {
+            $phase->withEventDispatcher($dispatcher);
+        }
+
         $this->deckFactory = new DeckFactory($deckGenerationDTO);
         $this->dispatcher->addSubscriber($this);
+    }
+
+    public function dispatchEvent(Event $event)
+    {
+        $this->dispatcher->dispatch($event);
     }
 
     public function broadcastJson(mixed $data): void

@@ -10,17 +10,15 @@ use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class TableFactory
 {
-    public function __construct(
-        private LoggerInterface $logger,
-        private EventDispatcher $dispatcher,
-    ) {
+    public function __construct(private LoggerInterface $logger, )
+    {
     }
 
     public function createTable(int $maxPlayers, array $phases, DeckGenerationDTO $deckGenerationDTO): Table
     {
         return new Table(
             $this->logger,
-            $this->dispatcher,
+            new EventDispatcher(),
             $maxPlayers,
             $phases,
             $deckGenerationDTO

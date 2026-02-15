@@ -7,12 +7,10 @@ use App\Event\PlayerAction;
 use App\Game\CardPile\Deck;
 
 use Psr\Log\LoggerInterface;
-use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class ShuffleDeckPhase extends AbstractPhase
 {
     private function __construct(
-        private EventDispatcher $dispatcher,
         protected LoggerInterface $logger,
         private ?int $rounds = 1
     ) {
@@ -32,7 +30,7 @@ class ShuffleDeckPhase extends AbstractPhase
 
     public static function fromArray(array $data): self
     {
-        return new self($data["dispatcher"], $data["logger"], $data["rounds"] ?? null);
+        return new self($data["logger"], $data["rounds"] ?? null);
     }
 
     public function onPlayerAction(PlayerAction $event): void
