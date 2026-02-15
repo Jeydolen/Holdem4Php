@@ -171,6 +171,7 @@ document.addEventListener("client_connected", () => {
 
         client.setTableId(table_id);
         document.querySelectorAll(".client-actions button").forEach(el => { el.disabled = false; });
+        document.querySelector(".tables-list").innerHTML = "";
         client.connectToTable();
     }
 
@@ -179,6 +180,14 @@ document.addEventListener("client_connected", () => {
     document.getElementById("start_game").onclick = () => { client.startGame(); }
 
     document.getElementById("get_player_state").onclick = () => { client.getState(); }
+
+    document.querySelectorAll(".player-actions button").forEach(el => el.onclick = () => {
+        const betting_amount_el = document.querySelector(".player-actions input[name='betting_amount']");
+        client.sendPlayerAction({
+            betting_action: el.dataset.action,
+            betting_amount: betting_amount_el.value.length > 0 ? parseInt(betting_amount_el.value) : null
+        });
+    });
 });
 
 document.addEventListener("client_disconnected", () => {
@@ -192,14 +201,27 @@ document.addEventListener("client_message", (e) => {
         return;
     }
 
+    if (e.detail.card || e.detail.cards) {
+        // Converting single card to array for compatibility
+        e.detail.cards = e.detail.cards ?? [e.detail.card];
+
+        handleCards(e.detail);
+        return;
+    }
+
     if (e.detail.table_state) {
         handleTableState(e.detail);
+        return;
+    }
+
+    if (e.detail.action === "ask_bet") {
+        handleAskBet(e.detail);
         return;
     }
 });
 
 function createTableList(tables) {
-    const table_container = document.querySelector(".tables");
+    const table_container = document.querySelector(".tables-list");
     table_container.innerHTML = "";
 
     const clear_btn = document.createElement("button");
@@ -224,9 +246,26 @@ function createTableList(tables) {
             document.getElementById("table_id").value = table_id;
             client.setTableId(table_id);
             client.connectToTable();
+            document.querySelector(".tables-list").innerHTML = "";
         }
         container.append(join_btn);
         table_container.append(container);
+    }
+}
+
+function handleCards(data) {
+    const cards = document.querySelector(".cards");
+
+    if (data.cards.length <= 0) {
+        cards.innerHTML = "";
+        return;
+    }
+
+    for (const card of data.cards) {
+        const card_container = document.createElement("div");
+        card_container.classList.add("card-container");
+        card_container.innerText = card.rank + card.symbol + "(" + card.weight + ")";
+        cards.append(card_container);
     }
 }
 
@@ -237,4 +276,22 @@ function handleTableState(data) {
         client.setTableId("");
         document.querySelectorAll(".client-actions button").forEach(el => { el.disabled = true; });
     }
+}
+
+function handleAskBet(data) {
+    console.log("handleAskBet", data);
+    const player_actions = document.querySelector(".player-actions");
+    player_actions.classList.remove("hidden");
+    player_actions.querySelectorAll("button").forEach(el => el.disabled = false);
+
+    // When time is up, automatically hide player actions
+    if (data.timeout_date.length > 0) {
+        const time = new Date(data.timeout_date) - new Date();
+        console.log(time);
+        setTimeout(() => { player_actions.classList.add("hidden"); }, time);
+    }
+
+    player_actions.querySelectorAll("button").forEach(el => {
+        el.disabled = !data.legal_actions.includes(el.dataset.action)
+    });
 }

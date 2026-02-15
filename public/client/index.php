@@ -1,7 +1,13 @@
+<!DOCTYPE html>
 <html>
 
 <head>
     <script src="./client.js"></script>
+    <style>
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
 
 <body>
@@ -35,11 +41,23 @@
         </div>
     </div>
 
-    <div class="tables"></div>
+    <div class="tables-list"></div>
 
-    <div class="player-actions"></div>
+    <div class="table">
+        <div class="cards"></div>
 
-    <div id="message_log"></div>
+        <div class="player-actions hidden">
+            <label for="betting_amount">Betting amount:</label>
+            <input type="number" name="betting_amount" id="betting_amount">
+
+            <button data-action="fold">Fold</button>
+            <button data-action="check">Check</button>
+            <button data-action="bet">Bet</button>
+            <button data-action="call">Call</button>
+        </div>
+
+        <div id="message_log"></div>
+    </div>
 </body>
 
 </html>

@@ -35,6 +35,7 @@ class BettingPhase extends AbstractPhase
         private int $maxBettingAmount
     ) {
         $this->bettingManager = new BettingManager($this->dispatcher);
+        $this->dispatcher->addSubscriber($this);
     }
 
     public function play(array &$players, Deck &$deck): void
@@ -88,19 +89,30 @@ class BettingPhase extends AbstractPhase
 
     public function onPlayerAction(PlayerAction $event): void
     {
+        $this->logger->debug("Waiting for player action", [
+            "class" => self::class,
+            "event_player" => $event->getPlayer()->getUserId(),
+            "waiting_player" => $this->players[$this->currentPlayerIndex]->getUserId(),
+            "data" => $event->getEventData()
+        ]);
+
         if ($event->getPlayer() !== $this->players[$this->currentPlayerIndex]) {
             return;
         }
 
         $data = $event->getEventData();
-        if (!empty($data["betting_action"])) {
-            $player_betting_action = PlayerBettingActionEnum::tryFrom($data["betting_action"]);
-            if (empty($player_betting_action)) {
-                throw new InvalidPlayerBettingActionException();
-            }
-
-            $this->bettingManager->play($event->getPlayer()->getUserId(), $player_betting_action, $data["betting_amount"] ?? null);
+        if (empty($data["betting_action"])) {
+            return;
         }
+
+        $this->logger->info("Player betting action", ["data" => $data]);
+
+        $player_betting_action = PlayerBettingActionEnum::tryFrom($data["betting_action"]);
+        if (empty($player_betting_action)) {
+            throw new InvalidPlayerBettingActionException();
+        }
+
+        $this->bettingManager->play($event->getPlayer()->getUserId(), $player_betting_action, $data["betting_amount"] ?? null);
 
         if (!empty($this->timerId)) {
             Timer::del($this->timerId);
