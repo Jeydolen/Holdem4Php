@@ -14,15 +14,21 @@ http:
         "tableType": "cash_game",
         "phases": [
           {
+            "type": "shuffle_deck_phase",
+            "rounds": 1,
+            "priority": 1,
+            "timeout": null
+          },
+          {
             "type":"draw_cards",
             "drawNumber": 2,
-            "priority": 1,
+            "priority": 2,
             "timeout": 10
           }, 
           {
             "type":"betting_phase",
             "maxBettingAmount": 100,
-            "priority": 1,
+            "priority": 3,
             "timeout": 10
           }
         ],

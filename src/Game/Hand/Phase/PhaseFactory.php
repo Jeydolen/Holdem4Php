@@ -15,12 +15,13 @@ class PhaseFactory
     private static array $map = [
         "draw_cards" => DrawCardPhase::class,
         "betting_phase" => BettingPhase::class,
+        "shuffle_deck_phase" => ShuffleDeckPhase::class,
     ];
 
     public function create(string $type, ?int $timeout, array $data): IPhase
     {
         if (empty(self::$map[$type])) {
-            throw new Exception("Unknown phase");
+            throw new Exception("Unknown phase: $type");
         }
 
         // There might be a better way to do this...

@@ -3,6 +3,7 @@
 namespace App\Game\Hand\Phase;
 
 use App\Event\PhaseState;
+use App\Event\PlayerAction;
 use App\Game\CardPile\Deck;
 
 use Psr\Log\LoggerInterface;
@@ -39,7 +40,7 @@ class DrawCardPhase extends AbstractPhase
         return new self($data["dispatcher"], $data["logger"], $data["timeout"] ?? null, $data["drawNumber"]);
     }
 
-    public function onPlayerAction(\App\Event\PlayerAction $event): void
+    public function onPlayerAction(PlayerAction $event): void
     {
     }
 }
