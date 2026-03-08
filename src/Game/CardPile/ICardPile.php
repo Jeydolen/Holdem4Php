@@ -25,4 +25,9 @@ interface ICardPile
      * @return void
      */
     public function contains(Card $card): bool;
+
+    /**
+     * @return Card[]
+     */
+    public function getCards(): array;
 }
