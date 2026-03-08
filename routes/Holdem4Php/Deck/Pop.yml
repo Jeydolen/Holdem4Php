@@ -13,263 +13,211 @@ http:
         "cards": [
           {
             "rank": "2",
-            "symbol": "C",
-            "weight": 0
+            "symbol": "C"
           },
           {
             "rank": "2",
-            "symbol": "D",
-            "weight": 0
+            "symbol": "D"
           },
           {
             "rank": "2",
-            "symbol": "H",
-            "weight": 0
+            "symbol": "H"
           },
           {
             "rank": "2",
-            "symbol": "S",
-            "weight": 0
+            "symbol": "S"
           },
           {
             "rank": "3",
-            "symbol": "C",
-            "weight": 1
+            "symbol": "C"
           },
           {
             "rank": "3",
-            "symbol": "D",
-            "weight": 1
+            "symbol": "D"
           },
           {
             "rank": "3",
-            "symbol": "H",
-            "weight": 1
+            "symbol": "H"
           },
           {
             "rank": "3",
-            "symbol": "S",
-            "weight": 1
+            "symbol": "S"
           },
           {
             "rank": "4",
-            "symbol": "C",
-            "weight": 2
+            "symbol": "C"
           },
           {
             "rank": "4",
-            "symbol": "D",
-            "weight": 2
+            "symbol": "D"
           },
           {
             "rank": "4",
-            "symbol": "H",
-            "weight": 2
+            "symbol": "H"
           },
           {
             "rank": "4",
-            "symbol": "S",
-            "weight": 2
+            "symbol": "S"
           },
           {
             "rank": "5",
-            "symbol": "C",
-            "weight": 3
+            "symbol": "C"
           },
           {
             "rank": "5",
-            "symbol": "D",
-            "weight": 3
+            "symbol": "D"
           },
           {
             "rank": "5",
-            "symbol": "H",
-            "weight": 3
+            "symbol": "H"
           },
           {
             "rank": "5",
-            "symbol": "S",
-            "weight": 3
+            "symbol": "S"
           },
           {
             "rank": "6",
-            "symbol": "C",
-            "weight": 4
+            "symbol": "C"
           },
           {
             "rank": "6",
-            "symbol": "D",
-            "weight": 4
+            "symbol": "D"
           },
           {
             "rank": "6",
-            "symbol": "H",
-            "weight": 4
+            "symbol": "H"
           },
           {
             "rank": "6",
-            "symbol": "S",
-            "weight": 4
+            "symbol": "S"
           },
           {
             "rank": "7",
-            "symbol": "C",
-            "weight": 5
+            "symbol": "C"
           },
           {
             "rank": "7",
-            "symbol": "D",
-            "weight": 5
+            "symbol": "D"
           },
           {
             "rank": "7",
-            "symbol": "H",
-            "weight": 5
+            "symbol": "H"
           },
           {
             "rank": "7",
-            "symbol": "S",
-            "weight": 5
+            "symbol": "S"
           },
           {
             "rank": "8",
-            "symbol": "C",
-            "weight": 6
+            "symbol": "C"
           },
           {
             "rank": "8",
-            "symbol": "D",
-            "weight": 6
+            "symbol": "D"
           },
           {
             "rank": "8",
-            "symbol": "H",
-            "weight": 6
+            "symbol": "H"
           },
           {
             "rank": "8",
-            "symbol": "S",
-            "weight": 6
+            "symbol": "S"
           },
           {
             "rank": "9",
-            "symbol": "C",
-            "weight": 7
+            "symbol": "C"
           },
           {
             "rank": "9",
-            "symbol": "D",
-            "weight": 7
+            "symbol": "D"
           },
           {
             "rank": "9",
-            "symbol": "H",
-            "weight": 7
+            "symbol": "H"
           },
           {
             "rank": "9",
-            "symbol": "S",
-            "weight": 7
+            "symbol": "S"
           },
           {
             "rank": "10",
-            "symbol": "C",
-            "weight": 8
+            "symbol": "C"
           },
           {
             "rank": "10",
-            "symbol": "D",
-            "weight": 8
+            "symbol": "D"
           },
           {
             "rank": "10",
-            "symbol": "H",
-            "weight": 8
+            "symbol": "H"
           },
           {
             "rank": "10",
-            "symbol": "S",
-            "weight": 8
+            "symbol": "S"
           },
           {
             "rank": "J",
-            "symbol": "C",
-            "weight": 9
+            "symbol": "C"
           },
           {
             "rank": "J",
-            "symbol": "D",
-            "weight": 9
+            "symbol": "D"
           },
           {
             "rank": "J",
-            "symbol": "H",
-            "weight": 9
+            "symbol": "H"
           },
           {
             "rank": "J",
-            "symbol": "S",
-            "weight": 9
+            "symbol": "S"
           },
           {
             "rank": "Q",
-            "symbol": "C",
-            "weight": 10
+            "symbol": "C"
           },
           {
             "rank": "Q",
-            "symbol": "D",
-            "weight": 10
+            "symbol": "D"
           },
           {
             "rank": "Q",
-            "symbol": "H",
-            "weight": 10
+            "symbol": "H"
           },
           {
             "rank": "Q",
-            "symbol": "S",
-            "weight": 10
+            "symbol": "S"
           },
           {
             "rank": "K",
-            "symbol": "C",
-            "weight": 11
+            "symbol": "C"
           },
           {
             "rank": "K",
-            "symbol": "D",
-            "weight": 11
+            "symbol": "D"
           },
           {
             "rank": "K",
-            "symbol": "H",
-            "weight": 11
+            "symbol": "H"
           },
           {
             "rank": "K",
-            "symbol": "S",
-            "weight": 11
+            "symbol": "S"
           },
           {
             "rank": "A",
-            "symbol": "C",
-            "weight": 12
+            "symbol": "C"
           },
           {
             "rank": "A",
-            "symbol": "D",
-            "weight": 12
+            "symbol": "D"
           },
           {
             "rank": "A",
-            "symbol": "H",
-            "weight": 12
+            "symbol": "H"
           },
           {
             "rank": "A",
-            "symbol": "S",
-            "weight": 12
+            "symbol": "S"
           }
         ],
         "noDuplicate": true,

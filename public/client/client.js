@@ -264,7 +264,7 @@ function handleCards(data) {
     for (const card of data.cards) {
         const card_container = document.createElement("div");
         card_container.classList.add("card-container");
-        card_container.innerText = card.rank + card.symbol + "(" + card.weight + ")";
+        card_container.innerText = card.rank + card.symbol;
         cards.append(card_container);
     }
 }

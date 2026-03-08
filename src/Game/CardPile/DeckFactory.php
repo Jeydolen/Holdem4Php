@@ -33,16 +33,15 @@ class DeckFactory
             }
 
             foreach ($card_gen_config->ranks as $i => $rank) {
-                $weight = $i + 1;
                 foreach ($card_gen_config->symbols as $symbol) {
-                    $card = new Card($rank, $symbol, $weight + 0);
+                    $card = new Card($rank, $symbol);
                     $deck->pushCard($card);
                 }
             }
         } else {
             $cards = $deckDTO->cards;
             foreach ($cards as $card) {
-                $real_card = new Card($card->getRank(), $card->getSymbol(), $card->getWeight());
+                $real_card = new Card($card->getRank(), $card->getSymbol());
                 $deck->pushCard($real_card);
             }
         }

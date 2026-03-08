@@ -27,10 +27,6 @@ class Card
     #[ORM\Column(length: 10)]
     private ?string $symbol = null;
 
-    #[Groups("show_card")]
-    #[ORM\Column]
-    private ?int $weight = null;
-
     #[Ignore()]
     #[ORM\ManyToOne(inversedBy: 'cards')]
     private ?TableRules $tableRules = null;
@@ -40,7 +36,6 @@ class Card
         $card = new self();
         $card->setRank($gameCard->getRank());
         $card->setSymbol($gameCard->getSymbol());
-        $card->setWeight($gameCard->getWeight());
         return $card;
     }
 
@@ -49,7 +44,6 @@ class Card
         $gameCard = new GameCard(
             rank: $this->getRank(),
             symbol: $this->getSymbol(),
-            weight: $this->getWeight(),
         );
 
         return $gameCard;
@@ -80,18 +74,6 @@ class Card
     public function setSymbol(string $symbol): static
     {
         $this->symbol = $symbol;
-
-        return $this;
-    }
-
-    public function getWeight(): ?int
-    {
-        return $this->weight;
-    }
-
-    public function setWeight(int $weight): static
-    {
-        $this->weight = $weight;
 
         return $this;
     }
