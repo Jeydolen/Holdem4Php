@@ -9,3 +9,8 @@
 /vendor/
 ###< symfony/framework-bundle ###
 /bin/workerman.log
+
+###> phpunit/phpunit ###
+/phpunit.xml
+/.phpunit.cache/
+###< phpunit/phpunit ###
