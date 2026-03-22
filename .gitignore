@@ -14,3 +14,6 @@
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
+
+# You need to retrieve this file from artifacts or create it with TwoPlusTwo evaluator
+src/Service/CardRank/HandRanks.dat
