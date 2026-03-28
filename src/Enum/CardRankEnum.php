@@ -4,17 +4,17 @@ namespace App\Enum;
 
 enum CardRankEnum: string
 {
-    case Deuce = '2';
-    case Three = '3';
-    case Four = '4';
-    case Five = '5';
-    case Six = '6';
-    case Seven = '7';
-    case Eight = '8';
-    case Nine = '9';
-    case Ten = '10';
-    case Jack = 'J';
-    case Queen = 'Q';
-    case King = 'K';
-    case Ace = 'A';
+    case DEUCE = '2';
+    case THREE = '3';
+    case FOUR = '4';
+    case FIVE = '5';
+    case SIX = '6';
+    case SEVEN = '7';
+    case EIGHT = '8';
+    case NINE = '9';
+    case TEN = '10';
+    case JACK = 'J';
+    case QUEEN = 'Q';
+    case KING = 'K';
+    case ACE = 'A';
 }

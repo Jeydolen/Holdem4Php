@@ -2,6 +2,8 @@
 
 namespace App\Service\CardRank;
 
+use App\Enum\CardSymbolEnum;
+
 use App\Game\Card\Card;
 use App\Game\CardPile\ICardPile;
 
@@ -12,7 +14,12 @@ class CardRankEvaluator
 
     private const FILE = __DIR__ . "/HandRanks.dat";
 
-    private const SUIT_INDEXES = ['c' => 0, 'd' => 1, 'h' => 2, 's' => 3];
+    private const SUIT_INDEXES = [
+        CardSymbolEnum::CLUB->value => 0,
+        CardSymbolEnum::DIAMOND->value => 1,
+        CardSymbolEnum::HEART->value => 2,
+        CardSymbolEnum::SPADE->value => 3
+    ];
 
     /**
      * Evaluates the strength of a 7-card hand using the TwoPlusTwo algorithm.

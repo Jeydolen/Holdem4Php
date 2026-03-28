@@ -3,6 +3,7 @@
 namespace App\Game\Card;
 
 use App\Enum\CardRankEnum;
+use App\Enum\CardSymbolEnum;
 
 
 class Card
@@ -10,20 +11,20 @@ class Card
     public const RANK_PRIMES = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41];
 
     public const SUIT_BITMASKS = [
-        'c' => 0x8000, // clubs
-        'd' => 0x4000, // diamonds
-        'h' => 0x2000, // hearts
-        's' => 0x1000, // spades
+        CardSymbolEnum::CLUB->value => 0x8000, // clubs
+        CardSymbolEnum::DIAMOND->value => 0x4000, // diamonds
+        CardSymbolEnum::HEART->value => 0x2000, // hearts
+        CardSymbolEnum::SPADE->value => 0x1000, // spades
     ];
 
     private string $rank;
 
     private string $symbol;
 
-    public function __construct(string $rank, string $symbol)
+    public function __construct(CardRankEnum $rank, CardSymbolEnum $symbol)
     {
-        $this->rank = $rank;
-        $this->symbol = $symbol;
+        $this->rank = $rank->value;
+        $this->symbol = $symbol->value;
     }
 
     public function getRank(): string

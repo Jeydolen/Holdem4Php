@@ -2,11 +2,14 @@
 
 namespace App\Controller;
 
+use App\Enum\CardRankEnum;
+use App\Enum\CardSymbolEnum;
+use App\Enum\DeckGenerationTypeEnum;
+
 use App\Game\Card\Card;
 use App\Game\CardPile\Deck;
 
 use App\DTO\DeckGenerationDTO;
-use App\Enum\DeckGenerationTypeEnum;
 
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -29,16 +32,16 @@ final class DeckController extends AbstractController
                 throw new HttpException(403, "Cannot generate a deck without a card generation config provided !");
             }
 
-            foreach ($card_gen_config->ranks as $i => $rank) {
+            foreach ($card_gen_config->ranks as $rank) {
                 foreach ($card_gen_config->symbols as $symbol) {
-                    $card = new Card($rank, $symbol);
+                    $card = new Card(CardRankEnum::tryFrom($rank), CardSymbolEnum::tryFrom($symbol));
                     $deck->pushCard($card);
                 }
             }
         } else {
             $cards = $deckDTO->cards;
             foreach ($cards as $card) {
-                $real_card = new Card($card->getRank(), $card->getSymbol());
+                $real_card = new Card(CardRankEnum::tryFrom($card->getRank()), CardSymbolEnum::tryFrom($card->getSymbol()));
                 $deck->pushCard($real_card);
             }
         }

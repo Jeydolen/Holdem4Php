@@ -3,10 +3,15 @@
 namespace App\Tests;
 
 use App\Enum\HandRankEnum;
+use App\Enum\CardRankEnum;
+use App\Enum\CardSymbolEnum;
+
 use App\Game\Card\Card;
 use App\Game\CardPile\BoardCards;
 use App\Game\CardPile\PlayerHoleCards;
+
 use App\Service\CardRank\CardRankEvaluator;
+
 use PHPUnit\Framework\TestCase;
 
 class CardRankEvaluatorTest extends TestCase
@@ -21,16 +26,16 @@ class CardRankEvaluatorTest extends TestCase
     public function testGenerateHands(): void
     {
         $boardCards = new BoardCards(5, true, [
-            new Card("A", "h"),
-            new Card("K", "d"),
-            new Card("Q", "s"),
-            new Card("J", "c"),
-            new Card("9", "h"),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("Q"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("J"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("9"), CardSymbolEnum::HEART),
         ]);
 
         $playerCards = new PlayerHoleCards(2, true, [
-            new Card("2", "c"),
-            new Card("7", "d"),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("7"), CardSymbolEnum::DIAMOND),
         ]);
 
         $hands = $this->cardRankEvaluator->generateHandsFromBoardAndPlayerCards($playerCards, $boardCards);
@@ -46,13 +51,13 @@ class CardRankEvaluatorTest extends TestCase
     {
         // A-K-Q-J-10 of hearts — best possible straight flush
         $sevenCards = new BoardCards(7, true, [
-            new Card("A", "h"),
-            new Card("K", "h"),
-            new Card("Q", "h"),
-            new Card("J", "h"),
-            new Card("10", "h"),
-            new Card("2", "h"),
-            new Card("4", "h"),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("Q"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("J"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("10"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("4"), CardSymbolEnum::HEART),
         ]);
 
         $rank = $this->cardRankEvaluator->evaluate($sevenCards);
@@ -65,13 +70,13 @@ class CardRankEvaluatorTest extends TestCase
     {
         // Four 2s and three 3s — best 5-card hand is four of a kind (2222 + 3 kicker)
         $sevenCards = new BoardCards(7, true, [
-            new Card("2", "c"),
-            new Card("2", "d"),
-            new Card("2", "h"),
-            new Card("2", "s"),
-            new Card("3", "c"),
-            new Card("3", "d"),
-            new Card("3", "h"),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("3"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("3"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("3"), CardSymbolEnum::HEART),
         ]);
 
         $rank = $this->cardRankEvaluator->evaluate($sevenCards);
@@ -84,13 +89,13 @@ class CardRankEvaluatorTest extends TestCase
     {
         // Three Aces and two Kings — full house (AAA KK)
         $sevenCards = new BoardCards(7, true, [
-            new Card("A", "c"),
-            new Card("A", "d"),
-            new Card("A", "h"),
-            new Card("K", "c"),
-            new Card("K", "d"),
-            new Card("2", "c"),
-            new Card("3", "c"),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("3"), CardSymbolEnum::CLUB),
         ]);
 
         $rank = $this->cardRankEvaluator->evaluate($sevenCards);
@@ -104,13 +109,13 @@ class CardRankEvaluatorTest extends TestCase
     {
         // Five spades but no straight
         $sevenCards = new BoardCards(7, true, [
-            new Card("A", "s"),
-            new Card("J", "s"),
-            new Card("9", "s"),
-            new Card("6", "s"),
-            new Card("2", "s"),
-            new Card("K", "h"),
-            new Card("Q", "d"),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("J"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("9"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("6"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("Q"), CardSymbolEnum::DIAMOND),
         ]);
 
         $rank = $this->cardRankEvaluator->evaluate($sevenCards);
@@ -123,13 +128,13 @@ class CardRankEvaluatorTest extends TestCase
     {
         // 5-6-7-8-9 straight, mixed suits, no flush possible
         $sevenCards = new BoardCards(7, true, [
-            new Card("5", "c"),
-            new Card("6", "d"),
-            new Card("7", "h"),
-            new Card("8", "s"),
-            new Card("9", "c"),
-            new Card("A", "d"),
-            new Card("K", "h"),
+            new Card(CardRankEnum::tryFrom("5"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("6"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("7"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("8"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("9"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::HEART),
         ]);
 
         $rank = $this->cardRankEvaluator->evaluate($sevenCards);
@@ -142,13 +147,13 @@ class CardRankEvaluatorTest extends TestCase
     {
         // Three Kings, no pair on the board
         $sevenCards = new BoardCards(7, true, [
-            new Card("K", "c"),
-            new Card("K", "d"),
-            new Card("K", "h"),
-            new Card("2", "s"),
-            new Card("4", "c"),
-            new Card("6", "d"),
-            new Card("8", "h"),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("4"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("6"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("8"), CardSymbolEnum::HEART),
         ]);
 
         $rank = $this->cardRankEvaluator->evaluate($sevenCards);
@@ -161,13 +166,13 @@ class CardRankEvaluatorTest extends TestCase
     {
         // Aces and Kings, no trips possible
         $sevenCards = new BoardCards(7, true, [
-            new Card("A", "c"),
-            new Card("A", "d"),
-            new Card("K", "h"),
-            new Card("K", "s"),
-            new Card("2", "c"),
-            new Card("4", "d"),
-            new Card("6", "h"),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("4"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("6"), CardSymbolEnum::HEART),
         ]);
 
         $rank = $this->cardRankEvaluator->evaluate($sevenCards);
@@ -180,13 +185,13 @@ class CardRankEvaluatorTest extends TestCase
     {
         // Pair of Aces, no other pair or better
         $sevenCards = new BoardCards(7, true, [
-            new Card("A", "c"),
-            new Card("A", "d"),
-            new Card("2", "h"),
-            new Card("4", "s"),
-            new Card("6", "c"),
-            new Card("8", "d"),
-            new Card("10", "h"),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("4"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("6"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("8"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("10"), CardSymbolEnum::HEART),
         ]);
 
         $rank = $this->cardRankEvaluator->evaluate($sevenCards);
@@ -199,13 +204,13 @@ class CardRankEvaluatorTest extends TestCase
     {
         // No pair, no flush, no straight
         $sevenCards = new BoardCards(7, true, [
-            new Card("A", "c"),
-            new Card("K", "d"),
-            new Card("J", "h"),
-            new Card("9", "s"),
-            new Card("7", "c"),
-            new Card("4", "d"),
-            new Card("2", "h"),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("J"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("9"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("7"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("4"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::HEART),
         ]);
 
         $rank = $this->cardRankEvaluator->evaluate($sevenCards);
@@ -218,23 +223,23 @@ class CardRankEvaluatorTest extends TestCase
     {
         // Straight flush beats four of a kind
         $straightFlush = new BoardCards(7, true, [
-            new Card("A", "h"),
-            new Card("K", "h"),
-            new Card("Q", "h"),
-            new Card("J", "h"),
-            new Card("10", "h"),
-            new Card("2", "c"),
-            new Card("3", "d"),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("Q"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("J"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("10"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("3"), CardSymbolEnum::DIAMOND),
         ]);
 
         $fourOfAKind = new BoardCards(7, true, [
-            new Card("A", "c"),
-            new Card("A", "d"),
-            new Card("A", "h"),
-            new Card("A", "s"),
-            new Card("K", "c"),
-            new Card("2", "d"),
-            new Card("3", "h"),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("3"), CardSymbolEnum::HEART),
         ]);
 
         $this->assertGreaterThan(
@@ -247,23 +252,23 @@ class CardRankEvaluatorTest extends TestCase
     {
         // Ace-high flush beats King-high flush
         $aceHighFlush = new BoardCards(7, true, [
-            new Card("A", "s"),
-            new Card("J", "s"),
-            new Card("9", "s"),
-            new Card("6", "s"),
-            new Card("2", "s"),
-            new Card("K", "h"),
-            new Card("Q", "d"),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("J"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("9"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("6"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("Q"), CardSymbolEnum::DIAMOND),
         ]);
 
         $kingHighFlush = new BoardCards(7, true, [
-            new Card("K", "s"),
-            new Card("J", "s"),
-            new Card("9", "s"),
-            new Card("6", "s"),
-            new Card("2", "s"),
-            new Card("A", "h"),
-            new Card("Q", "d"),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("J"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("9"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("6"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::SPADE),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("Q"), CardSymbolEnum::DIAMOND),
         ]);
 
         $this->assertGreaterThan(
@@ -276,23 +281,23 @@ class CardRankEvaluatorTest extends TestCase
     {
         // Two boards with the same best 5-card hand (same ranks, different irrelevant cards)
         $handA = new BoardCards(7, true, [
-            new Card("A", "c"),
-            new Card("A", "d"),
-            new Card("A", "h"),
-            new Card("K", "c"),
-            new Card("K", "d"),
-            new Card("2", "h"),
-            new Card("3", "s"),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("2"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("3"), CardSymbolEnum::SPADE),
         ]);
 
         $handB = new BoardCards(7, true, [
-            new Card("A", "c"),
-            new Card("A", "d"),
-            new Card("A", "h"),
-            new Card("K", "c"),
-            new Card("K", "d"),
-            new Card("4", "h"),
-            new Card("5", "s"),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("A"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::CLUB),
+            new Card(CardRankEnum::tryFrom("K"), CardSymbolEnum::DIAMOND),
+            new Card(CardRankEnum::tryFrom("4"), CardSymbolEnum::HEART),
+            new Card(CardRankEnum::tryFrom("5"), CardSymbolEnum::SPADE),
         ]);
 
         $this->assertSame(

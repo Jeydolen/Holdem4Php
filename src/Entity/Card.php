@@ -2,8 +2,13 @@
 
 namespace App\Entity;
 
+use App\Enum\CardRankEnum;
+use App\Enum\CardSymbolEnum;
+
 use App\Repository\CardRepository;
+
 use Doctrine\ORM\Mapping as ORM;
+
 use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Serializer\Attribute\Ignore;
 
@@ -42,8 +47,8 @@ class Card
     public function toGameCard(): GameCard
     {
         $gameCard = new GameCard(
-            rank: $this->getRank(),
-            symbol: $this->getSymbol(),
+            rank: CardRankEnum::tryFrom($this->getRank()),
+            symbol: CardSymbolEnum::tryFrom($this->getSymbol()),
         );
 
         return $gameCard;

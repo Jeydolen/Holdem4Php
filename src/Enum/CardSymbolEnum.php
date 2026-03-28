@@ -4,11 +4,8 @@ namespace App\Enum;
 
 enum CardSymbolEnum: string
 {
-    case CLUB = "c";
-
-    case DIAMOND = "d";
-
-    case HEART = "h";
-
-    case SPADE = "s";
+    case CLUB = "C";
+    case DIAMOND = "D";
+    case HEART = "H";
+    case SPADE = "S";
 }
