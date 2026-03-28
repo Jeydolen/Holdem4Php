@@ -4,7 +4,9 @@ namespace App\Game\Hand\Phase;
 
 use App\Event\PhaseState;
 use App\Event\PlayerAction;
+
 use App\Game\CardPile\Deck;
+use App\Game\CardPile\ICardPile;
 
 use Psr\Log\LoggerInterface;
 
@@ -16,7 +18,7 @@ class ShuffleDeckPhase extends AbstractPhase
     ) {
     }
 
-    public function play(array &$players, Deck &$deck): void
+    public function play(array &$players, Deck &$deck, ?ICardPile $boardCardPile): void
     {
         $this->logger->info("Playing phase", ["phase" => (self::class), "rounds" => $this->rounds]);
 

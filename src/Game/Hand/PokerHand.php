@@ -7,6 +7,8 @@ use App\Event\PhaseState;
 use App\Game\Player;
 use App\Game\CardPile\Deck;
 use App\Game\Hand\Phase\IPhase;
+use App\Game\CardPile\ICardPile;
+use App\Game\CardPile\BoardCards;
 
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
@@ -38,11 +40,14 @@ class PokerHand
 
     private int $phase_index = 0;
 
+    private ?ICardPile $boardCardPile;
+
     public function __construct(array $players, array $phases, Deck $deck, private EventDispatcher $dispatcher)
     {
         $this->players = $players;
         $this->phases = $phases;
         $this->deck = $deck;
+        $this->boardCardPile = new BoardCards(5, true);
     }
 
     public function playPhase(): void
@@ -57,7 +62,7 @@ class PokerHand
          * @var IPhase
          */
         $phase = $this->phases[$this->phase_index];
-        $phase->play($this->players, $this->deck);
+        $phase->play($this->players, $this->deck, $this->boardCardPile);
     }
 
     public function nextPhase(): void

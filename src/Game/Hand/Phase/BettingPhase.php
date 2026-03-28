@@ -4,6 +4,7 @@ namespace App\Game\Hand\Phase;
 
 use App\Game\Player;
 use App\Game\CardPile\Deck;
+use App\Game\CardPile\ICardPile;
 
 use App\Event\PhaseState;
 use App\Event\PlayerAction;
@@ -35,7 +36,7 @@ class BettingPhase extends AbstractPhase
     ) {
     }
 
-    public function play(array &$players, Deck &$deck): void
+    public function play(array &$players, Deck &$deck, ?ICardPile $boardCardPile): void
     {
         $this->logger->info("Playing phase", ["phase" => (self::class), "max_betting_amount" => $this->maxBettingAmount]);
 

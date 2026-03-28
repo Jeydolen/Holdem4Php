@@ -2,8 +2,11 @@
 
 namespace App\Game\Hand\Phase;
 
-use App\Game\CardPile\Deck;
 use App\Event\PlayerAction;
+
+use App\Game\CardPile\Deck;
+use App\Game\CardPile\ICardPile;
+
 use Psr\Log\LoggerInterface;
 
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -20,7 +23,7 @@ abstract class AbstractPhase implements IPhase, EventSubscriberInterface
         return [PlayerAction::class => "onPlayerAction"];
     }
 
-    abstract public function play(array &$players, Deck &$deck): void;
+    abstract public function play(array &$players, Deck &$deck, ?ICardPile $boardCardPile): void;
 
     abstract public function onPlayerAction(PlayerAction $event): void;
 
