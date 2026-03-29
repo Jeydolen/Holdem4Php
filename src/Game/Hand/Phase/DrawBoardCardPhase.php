@@ -30,6 +30,8 @@ class DrawBoardCardPhase extends AbstractPhase
             $boardCardPile->pushCard($card);
         }
 
+        $this->dispatcher->dispatch(new PhaseState("board_cards", ["board_cards" => $boardCardPile->getCards()]));
+
         $this->dispatcher->dispatch(new PhaseState("next_phase"));
     }
 
