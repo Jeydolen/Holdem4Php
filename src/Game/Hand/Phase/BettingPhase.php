@@ -41,11 +41,18 @@ class BettingPhase extends AbstractPhase
         $this->logger->info("Playing phase", ["phase" => (self::class), "max_betting_amount" => $this->maxBettingAmount]);
 
         $this->players = $players;
-        // We ask every player to bet, they can either call, check, raise or fold
-        $this->askPlayer($players[$this->currentPlayerIndex]);
+
+        // This phase can be called when all players did already fold in some cases.
+        // This phase has nothing to do if there is no players
+        if (empty($this->players)) {
+            $this->dispatcher->dispatch(new PhaseState("next_phase"));
+            return;
+        }
+
+        $this->askPlayer($this->players[$this->currentPlayerIndex]);
     }
 
-    private function askPlayer(Player $player)
+    private function askPlayer(Player $player): void
     {
         $this->logger->info("Asking player to bet", ["player_id" => $player->getUserId()]);
 
@@ -70,7 +77,19 @@ class BettingPhase extends AbstractPhase
 
     private function nextPlayer(): void
     {
-        // We go to the next player and do wait for the response of the current one
+        // Cancel the timer of the current player before moving on
+        if (!empty($this->timerId)) {
+            Timer::del($this->timerId);
+            $this->timerId = null;
+        }
+
+        // Count active players (those who have not folded)
+        $activePlayers = array_filter($this->players, fn(Player $p) => !$p->hasFolded());
+        if (\count($activePlayers) <= 1) {
+            $this->dispatcher->dispatch(new PhaseState("next_phase"));
+            return;
+        }
+
         if (!empty($this->players[$this->currentPlayerIndex + 1])) {
             $this->currentPlayerIndex += 1;
             $this->askPlayer($this->players[$this->currentPlayerIndex]);
@@ -99,7 +118,7 @@ class BettingPhase extends AbstractPhase
         $this->logger->debug("Waiting for player action", [
             "class" => self::class,
             "event_player" => $event->getPlayer()->getUserId(),
-            "waiting_player" => $this->players[$this->currentPlayerIndex]->getUserId(),
+            "waiting_player" => $this->players[$this->currentPlayerIndex]?->getUserId(),
             "data" => $event->getEventData()
         ]);
 
@@ -121,11 +140,6 @@ class BettingPhase extends AbstractPhase
 
         $this->bettingManager->play($event->getPlayer()->getUserId(), $player_betting_action, $data["betting_amount"] ?? null);
 
-        if (!empty($this->timerId)) {
-            Timer::del($this->timerId);
-        }
-
-        // Ask next player
         $this->nextPlayer();
     }
 }
