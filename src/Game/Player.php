@@ -30,6 +30,8 @@ class Player implements EventSubscriberInterface
 
     private ICardPile $hole_cards;
 
+    private bool $folded = false;
+
     public function __construct(
         string $user,
         private ConnectionWrapper $connection,
@@ -104,5 +106,17 @@ class Player implements EventSubscriberInterface
         }
 
         $this->logger->info("Player action", ["event" => $event->getEventData(), "player" => $event->getPlayer()->getUserId()]);
+
+        if (!empty($event->getEventData()["betting_action"])) {
+            $betting_action = $event->getEventData()["betting_action"];
+            if ($betting_action === "fold") {
+                $this->folded = true;
+            }
+        }
+    }
+
+    public function hasFolded(): bool
+    {
+        return $this->folded;
     }
 }
