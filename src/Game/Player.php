@@ -30,7 +30,7 @@ class Player implements EventSubscriberInterface
 
     private ICardPile $hole_cards;
 
-    private bool $folded = false;
+    private bool $folded;
 
     public function __construct(
         string $user,
@@ -49,6 +49,7 @@ class Player implements EventSubscriberInterface
     public function resetState()
     {
         $this->hole_cards = new PlayerHoleCards(2, true);
+        $this->folded = false;
     }
 
     public function getUserId(): string
