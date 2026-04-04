@@ -30,6 +30,9 @@ class DrawCardPhase extends AbstractPhase
                 $this->logger->debug("Card added to player cards", ["player" => $player, "card" => $card, "card_number" => $i]);
                 $player->pushCard($card);
             }
+
+            // Update player client state
+            $player->sendCurrentState();
         }
 
         $this->dispatcher->dispatch(new PhaseState("next_phase"));

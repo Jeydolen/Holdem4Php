@@ -77,7 +77,6 @@ class Player implements EventSubscriberInterface
     public function pushCard(Card $card): void
     {
         $this->hole_cards->pushCard($card);
-        $this->sendMessage(["card" => $card]);
     }
 
     public function askBet(int $maxBettingAmount, array $legalActions, ?int $minBettingAmount = 0, ?DateTimeInterface $timeoutDate = null): void
@@ -97,7 +96,7 @@ class Player implements EventSubscriberInterface
      */
     public function sendCurrentState(): void
     {
-        $this->sendMessage(["cards" => $this->getHoleCards()]);
+        $this->sendMessage(["cards" => $this->getHoleCards()->getCards()]);
     }
 
     public function onPlayerAction(PlayerAction $event): void
