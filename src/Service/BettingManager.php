@@ -79,8 +79,10 @@ class BettingManager
 
         if ($playerAction === PlayerBettingActionEnum::FOLD) {
             $this->dispatcher->dispatch(new PhaseState("player_fold", ["player_id" => $playerId]));
+            return;
         }
 
-        // CHECK: nothing to do
+        // Advertising others what the player did
+        $this->dispatcher->dispatch(new PhaseState("player_betting_action", ["player_id" => $playerId, "action" => $playerAction]));
     }
 }
