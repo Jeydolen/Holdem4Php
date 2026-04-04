@@ -26,7 +26,6 @@ class Client {
         this.#websocket.onopen = (event) => {
             if (event.data) {
                 this.#log_element.append(event.data);
-                console.log(event.data);
             }
 
             this.getTables();
@@ -205,7 +204,7 @@ document.addEventListener("client_message", (e) => {
         // Converting single card to array for compatibility
         e.detail.cards = e.detail.cards ?? [e.detail.card];
 
-        handleCards(e.detail);
+        handleCards(e.detail, document.querySelector(".cards"));
         return;
     }
 
@@ -253,19 +252,16 @@ function createTableList(tables) {
     }
 }
 
-function handleCards(data) {
-    const cards = document.querySelector(".cards");
-
-    if (data.cards.length <= 0) {
-        cards.innerHTML = "";
-        return;
+function handleCards(data, container, append = false) {
+    if (!append) {
+        container.innerHTML = "";
     }
 
     for (const card of data.cards) {
-        const card_container = document.createElement("div");
+        const card_container = document.createElement("span");
         card_container.classList.add("card-container");
         card_container.innerText = card.rank + card.symbol;
-        cards.append(card_container);
+        container.append(card_container);
     }
 }
 
@@ -275,6 +271,22 @@ function handleTableState(data) {
         document.getElementById("table_id").value = "";
         client.setTableId("");
         document.querySelectorAll(".client-actions button").forEach(el => { el.disabled = true; });
+        return;
+    }
+
+    if (data.table_state === "table_update") {
+        if (data.action === "no_more_phases") {
+            // Reset cards
+            document.querySelector(".cards").innerHTML = "";
+            document.querySelector(".board-cards").innerHTML = "";
+            return;
+        }
+
+        if (data.action === "board_cards") {
+            handleCards({ cards: data.data.board_cards }, document.querySelector(".board-cards"));
+            return;
+        }
+
     }
 }
 

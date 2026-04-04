@@ -44,7 +44,15 @@
     <div class="tables-list"></div>
 
     <div class="table">
-        <div class="cards"></div>
+        <div>
+            <h1>Pocket cards</h1>
+            <div class="cards"></div>
+        </div>
+
+        <div>
+            <h1>Board cards</h1>
+            <div class="board-cards"></div>
+        </div>
 
         <div class="player-actions hidden">
             <label for="betting_amount">Betting amount:</label>
