@@ -25,6 +25,10 @@ use Symfony\Component\EventDispatcher\EventDispatcher;
 class BettingPhase extends AbstractPhase
 {
     private array $players = [];
+
+    /** @var string[] Player IDs that have folded during this phase */
+    private array $foldedPlayerIds = [];
+
     private ?int $timerId = null;
     private int $currentPlayerIndex = 0;
     private BettingManager $bettingManager;
@@ -41,13 +45,6 @@ class BettingPhase extends AbstractPhase
         $this->logger->info("Playing phase", ["phase" => (self::class), "max_betting_amount" => $this->maxBettingAmount]);
 
         $this->players = $players;
-
-        // This phase can be called when all players did already fold in some cases.
-        // This phase has nothing to do if there is no players
-        if (empty($this->players)) {
-            $this->dispatcher->dispatch(new PhaseState("next_phase"));
-            return;
-        }
 
         $this->askPlayer($this->players[$this->currentPlayerIndex]);
     }
@@ -83,9 +80,13 @@ class BettingPhase extends AbstractPhase
             $this->timerId = null;
         }
 
-        // Count active players (those who have not folded)
-        $activePlayers = array_filter($this->players, fn(Player $p) => !$p->hasFolded());
+        $activePlayers = array_filter(
+            $this->players,
+            fn(Player $p) => !\in_array($p->getUserId(), $this->foldedPlayerIds)
+        );
+
         if (\count($activePlayers) <= 1) {
+            $this->logger->debug("Not enough players to continue betting");
             $this->dispatcher->dispatch(new PhaseState("next_phase"));
             return;
         }
@@ -115,7 +116,7 @@ class BettingPhase extends AbstractPhase
 
     public function onPlayerAction(PlayerAction $event): void
     {
-        $this->logger->debug("Waiting for player action", [
+        $this->logger->debug("Player action", [
             "class" => self::class,
             "event_player" => $event->getPlayer()->getUserId(),
             "waiting_player" => $this->players[$this->currentPlayerIndex]?->getUserId(),
@@ -131,11 +132,15 @@ class BettingPhase extends AbstractPhase
             return;
         }
 
-        $this->logger->info("Player betting action", ["data" => $data]);
-
         $player_betting_action = PlayerBettingActionEnum::tryFrom($data["betting_action"]);
         if (empty($player_betting_action)) {
             throw new InvalidPlayerBettingActionException();
+        }
+
+        $this->logger->info("Player betting action", ["data" => $data, "betting_action" => $player_betting_action]);
+
+        if ($player_betting_action === PlayerBettingActionEnum::FOLD) {
+            $this->foldedPlayerIds[] = $event->getPlayer()->getUserId();
         }
 
         $this->bettingManager->play($event->getPlayer()->getUserId(), $player_betting_action, $data["betting_amount"] ?? null);
