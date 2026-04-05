@@ -61,7 +61,7 @@ class PokerHand
 
         // If there is only one player left, he wins automatically
         if (\sizeof($this->players) <= 1) {
-            // TODO: Send victory signal
+            $this->dispatcher->dispatch(new PhaseState("player_won", ["player_id" => $this->players[0]?->getUserId() ?? null, "hand_value" => 0]));
             $this->logger->debug("Last player won", ["players" => $this->players[0] ?? null]);
             $this->sendPokerHandEndSignal();
             return;
@@ -83,14 +83,14 @@ class PokerHand
     {
         $newPlayers = [];
         foreach ($this->players as $player) {
-            if ($player->getUserId() === $playerId) {
+            // All active players except the one folding
+            if ($player->getUserId() !== $playerId) {
                 $newPlayers[] = $player;
                 continue;
             }
 
             $this->folded_players[] = $player;
         }
-
         $this->players = $newPlayers;
     }
 
