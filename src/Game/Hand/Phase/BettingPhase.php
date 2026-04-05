@@ -43,6 +43,11 @@ class BettingPhase extends AbstractPhase
     public function play(array &$players, Deck &$deck, ?ICardPile $boardCardPile): void
     {
         $this->logger->info("Playing phase", ["phase" => (self::class), "max_betting_amount" => $this->maxBettingAmount]);
+        if (\count($players) <= 1) {
+            $this->logger->info("Not enough players to play the phase", ["phase" => (self::class)]);
+            $this->dispatcher->dispatch(new PhaseState("next_phase"));
+            return;
+        }
 
         $this->players = $players;
 
