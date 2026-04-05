@@ -140,7 +140,7 @@ class Table implements EventSubscriberInterface
             $player->resetState();
         }
 
-        $this->current_hand = new PokerHand($this->players, $this->phases, $this->deckFactory->newDeck(), $this->dispatcher);
+        $this->current_hand = new PokerHand($this->players, $this->phases, $this->deckFactory->newDeck(), $this->dispatcher, $this->logger);
         $this->logger->info("New hand");
         $this->broadcastJson(["table_state" => "new_hand"]);
     }
@@ -164,6 +164,7 @@ class Table implements EventSubscriberInterface
     {
         if ($event->getAction() === "no_more_phases") {
             $this->logger->info("No more phases in this hand. Waiting for next hand...");
+            $this->broadcastJson(["table_state" => "table_update", "action" => $event->getAction()]);
             return;
         }
 
@@ -173,6 +174,7 @@ class Table implements EventSubscriberInterface
 
 
         if ($event->getAction() === "player_fold") {
+            $this->logger->info("Table received player fold instruction", context: ["data" => $event->getEventData()]);
             $this->current_hand->foldPlayer($event->getEventData()["player_id"]);
         }
 
