@@ -115,8 +115,16 @@ class Player implements EventSubscriberInterface
         }
     }
 
-    public function hasFolded(): bool
+    public function __tostring(): string
     {
-        return $this->folded;
+        $string = "UserID: " . $this->getUserId();
+
+        if (!empty($this->hole_cards->getCards())) {
+            $string .= " Cards: [";
+            $string .= implode(",", array_map(fn(Card $card) => $card->__tostring(), $this->hole_cards->getCards()));
+            $string .= "]";
+        }
+
+        return $string;
     }
 }
