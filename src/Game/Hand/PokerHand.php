@@ -10,6 +10,7 @@ use App\Game\Hand\Phase\IPhase;
 use App\Game\CardPile\ICardPile;
 use App\Game\CardPile\BoardCards;
 
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
 /**
@@ -42,7 +43,7 @@ class PokerHand
 
     private ?ICardPile $boardCardPile;
 
-    public function __construct(array $players, array $phases, Deck $deck, private EventDispatcher $dispatcher)
+    public function __construct(array $players, array $phases, Deck $deck, private EventDispatcher $dispatcher, private LoggerInterface $logger)
     {
         $this->players = $players;
         $this->phases = $phases;
@@ -54,7 +55,15 @@ class PokerHand
     {
         // Index out of bound (phase is indexed by 0 so we need to subtract 1 to the array)
         if ($this->phase_index > (\sizeof($this->phases) - 1)) {
-            $this->dispatcher->dispatch(new PhaseState("no_more_phases"));
+            $this->sendPokerHandEndSignal();
+            return;
+        }
+
+        // If there is only one player left, he wins automatically
+        if (\sizeof($this->players) <= 1) {
+            // TODO: Send victory signal
+            $this->logger->debug("Last player won", ["players" => $this->players[0] ?? null]);
+            $this->sendPokerHandEndSignal();
             return;
         }
 
@@ -83,5 +92,10 @@ class PokerHand
         }
 
         $this->players = $newPlayers;
+    }
+
+    private function sendPokerHandEndSignal(): void
+    {
+        $this->dispatcher->dispatch(new PhaseState("no_more_phases"));
     }
 }
