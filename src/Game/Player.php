@@ -30,8 +30,6 @@ class Player implements EventSubscriberInterface
 
     private ICardPile $hole_cards;
 
-    private bool $folded;
-
     public function __construct(
         string $user,
         private ConnectionWrapper $connection,
@@ -49,7 +47,6 @@ class Player implements EventSubscriberInterface
     public function resetState()
     {
         $this->hole_cards = new PlayerHoleCards(2, true);
-        $this->folded = false;
     }
 
     public function getUserId(): string
@@ -63,12 +60,16 @@ class Player implements EventSubscriberInterface
         return $this->user == $player->user && $this->connection == $player->connection;
     }
 
-
     public function getHoleCards(): ICardPile
     {
         return $this->hole_cards;
     }
 
+    /**
+     * Send a message to player connection
+     * @param mixed $data Data to send, needs to be serializable
+     * @return bool|null
+     */
     public function sendMessage(mixed $data): bool|null
     {
         return $this->connection->sendJson($data);
@@ -86,7 +87,7 @@ class Player implements EventSubscriberInterface
             "legal_actions" => $legalActions,
             "max_amount" => $maxBettingAmount,
             "min_amount" => $minBettingAmount,
-            "timeout_date" => $timeoutDate->format(DateTime::ISO8601)
+            "timeout_date" => $timeoutDate->format(DateTime::ATOM)
         ]);
     }
 
@@ -106,13 +107,6 @@ class Player implements EventSubscriberInterface
         }
 
         $this->logger->info("Player action", ["event" => $event->getEventData(), "player" => $event->getPlayer()->getUserId()]);
-
-        if (!empty($event->getEventData()["betting_action"])) {
-            $betting_action = $event->getEventData()["betting_action"];
-            if ($betting_action === "fold") {
-                $this->folded = true;
-            }
-        }
     }
 
     public function __tostring(): string
