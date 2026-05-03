@@ -81,17 +81,14 @@ class PokerHand
 
     public function foldPlayer(string $playerId): void
     {
-        $newPlayers = [];
-        foreach ($this->players as $player) {
-            // All active players except the one folding
-            if ($player->getUserId() !== $playerId) {
-                $newPlayers[] = $player;
-                continue;
+        $player = array_find($this->players, fn(Player $player) => $player->getUserId() === $playerId);
+
+        if (empty($player)) {
+                throw new Exception("Player Id not found in players");
             }
 
-            $this->folded_players[] = $player;
-        }
-        $this->players = $newPlayers;
+            $this->foldedPlayerIds[] = $playerId;
+        $this->logger->debug("Player folded", context: ["player" => $player]);
     }
 
     private function sendPokerHandEndSignal(): void
