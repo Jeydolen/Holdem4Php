@@ -10,6 +10,7 @@ use App\Game\Hand\Phase\IPhase;
 use App\Game\CardPile\ICardPile;
 use App\Game\CardPile\BoardCards;
 
+use Exception;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
@@ -21,30 +22,35 @@ class PokerHand
 {
     /**
      * The players playing the hand
-     * @var array<Player>
+     * @var Player[]
      */
     private array $players;
 
     /**
-     * The players that will not play the next phase of the hand
-     * @var array<Player>
+     * The players ids of players that will not play the next phase of the hand
+     * @var string[]
      */
-    private array $folded_players;
+    private array $foldedPlayerIds = [];
 
     /**
      * The phases to be played in the hand
-     * @var array
+     * @var IPhase[]
      */
     private array $phases;
 
     private Deck $deck;
 
-    private int $phase_index = 0;
+    private int $phaseIndex = 0;
 
     private ?ICardPile $boardCardPile;
 
-    public function __construct(array $players, array $phases, Deck $deck, private EventDispatcher $dispatcher, private LoggerInterface $logger)
-    {
+    public function __construct(
+        array $players,
+        array $phases,
+        Deck $deck,
+        private EventDispatcher $dispatcher,
+        private LoggerInterface $logger
+    ) {
         $this->players = $players;
         $this->phases = $phases;
         $this->deck = $deck;
@@ -54,29 +60,31 @@ class PokerHand
     public function playPhase(): void
     {
         // Index out of bound (phase is indexed by 0 so we need to subtract 1 to the array)
-        if ($this->phase_index > (\sizeof($this->phases) - 1)) {
+        if ($this->phaseIndex > (\sizeof($this->phases) - 1)) {
             $this->sendPokerHandEndSignal();
             return;
         }
+
+        // Filter folded players
+        $active_players = array_values(array_filter($this->players, fn(Player $player) => !\in_array($player->getUserId(), $this->foldedPlayerIds)));
+        $this->logger->info("", context: ["active_players" => $active_players, "folded_player_ids" => $this->foldedPlayerIds]);
 
         // If there is only one player left, he wins automatically
-        if (\sizeof($this->players) <= 1) {
-            $this->dispatcher->dispatch(new PhaseState("player_won", ["player_id" => $this->players[0]?->getUserId() ?? null, "hand_value" => 0]));
-            $this->logger->debug("Last player won", ["players" => $this->players[0] ?? null]);
+        if (\sizeof($active_players) <= 1) {
+            $this->dispatcher->dispatch(new PhaseState("player_won", ["player_id" => $active_players[0]?->getUserId() ?? null, "hand_value" => 0]));
+            $this->logger->debug("Last player won", ["players" => $active_players[0] ?? null]);
             $this->sendPokerHandEndSignal();
             return;
         }
 
-        /**
-         * @var IPhase
-         */
-        $phase = $this->phases[$this->phase_index];
-        $phase->play($this->players, $this->deck, $this->boardCardPile);
+        /** @var IPhase */
+        $phase = $this->phases[$this->phaseIndex];
+        $phase->play($active_players, $this->deck, $this->boardCardPile);
     }
 
     public function nextPhase(): void
     {
-        $this->phase_index += 1;
+        $this->phaseIndex += 1;
     }
 
     public function foldPlayer(string $playerId): void
@@ -84,10 +92,10 @@ class PokerHand
         $player = array_find($this->players, fn(Player $player) => $player->getUserId() === $playerId);
 
         if (empty($player)) {
-                throw new Exception("Player Id not found in players");
-            }
+            throw new Exception("Player Id not found in players");
+        }
 
-            $this->foldedPlayerIds[] = $playerId;
+        $this->foldedPlayerIds[] = $playerId;
         $this->logger->debug("Player folded", context: ["player" => $player]);
     }
 
