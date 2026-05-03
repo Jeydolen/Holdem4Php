@@ -27,7 +27,7 @@ class ShuffleDeckPhase extends AbstractPhase
             $deck->shuffle();
         }
 
-        $this->dispatcher->dispatch(new PhaseState("next_phase"));
+        $this->endPhase();
     }
 
     public static function fromArray(array $data): self

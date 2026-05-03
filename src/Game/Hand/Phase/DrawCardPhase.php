@@ -35,7 +35,7 @@ class DrawCardPhase extends AbstractPhase
             $player->sendCurrentState();
         }
 
-        $this->dispatcher->dispatch(new PhaseState("next_phase"));
+        $this->endPhase();
     }
 
     public static function fromArray(array $data): self

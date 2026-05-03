@@ -25,6 +25,9 @@ class ShowdownPhase extends AbstractPhase
     public function play(array &$players, Deck &$deck): void
     {
         $this->dispatcher->dispatch(new PhaseState("next_phase"));
+}
+
+        $this->endPhase();
     }
 
     public static function fromArray(array $data): self
