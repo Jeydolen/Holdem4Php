@@ -45,7 +45,7 @@ class BettingPhase extends AbstractPhase
         $this->logger->info("Playing phase", ["phase" => (self::class), "max_betting_amount" => $this->maxBettingAmount]);
         if (\count($players) <= 1) {
             $this->logger->info("Not enough players to play the phase", ["phase" => (self::class)]);
-            $this->dispatcher->dispatch(new PhaseState("next_phase"));
+            $this->endPhase();
             return;
         }
 
@@ -92,7 +92,7 @@ class BettingPhase extends AbstractPhase
 
         if (\count($activePlayers) <= 1) {
             $this->logger->debug("Not enough players to continue betting");
-            $this->dispatcher->dispatch(new PhaseState("next_phase"));
+            $this->endPhase();
             return;
         }
 
@@ -102,7 +102,7 @@ class BettingPhase extends AbstractPhase
             return;
         }
 
-        $this->dispatcher->dispatch(new PhaseState("next_phase"));
+        $this->endPhase();
     }
 
     public static function fromArray(array $data): self
