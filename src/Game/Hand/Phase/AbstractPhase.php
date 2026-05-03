@@ -2,6 +2,7 @@
 
 namespace App\Game\Hand\Phase;
 
+use App\Event\PhaseState;
 use App\Event\PlayerAction;
 
 use App\Game\CardPile\Deck;
@@ -31,5 +32,11 @@ abstract class AbstractPhase implements IPhase, EventSubscriberInterface
     {
         $this->dispatcher = $dispatcher;
         return $this;
+    }
+
+    protected function endPhase(): void
+    {
+        $this->logger->debug("Ending phase", context: ["calling_class" => get_called_class()]);
+        $this->dispatcher->dispatch(new PhaseState("next_phase"));
     }
 }
