@@ -30,7 +30,7 @@ class Table implements EventSubscriberInterface
      * @var Player[]
      */
     private array $players = [];
-    private PokerHand $current_hand;
+    private PokerHand $currentHand;
 
     public readonly int $maxPlayers;
     public readonly array $phases;
@@ -135,12 +135,12 @@ class Table implements EventSubscriberInterface
     public function newHand()
     {
         // Save previous hand in db for the history
-        // $this->current_hand;
+        // $this->currentHand;
         foreach ($this->players as $player) {
             $player->resetState();
         }
 
-        $this->current_hand = new PokerHand($this->players, $this->phases, $this->deckFactory->newDeck(), $this->dispatcher, $this->logger);
+        $this->currentHand = new PokerHand($this->players, $this->phases, $this->deckFactory->newDeck(), $this->dispatcher, $this->logger);
         $this->logger->info("New hand");
         $this->broadcastJson(["table_state" => "new_hand"]);
     }
@@ -150,14 +150,14 @@ class Table implements EventSubscriberInterface
         $this->logger->info("Starting new hand");
 
         $this->newHand();
-        $this->current_hand->playPhase();
+        $this->currentHand->playPhase();
     }
 
     public function nextPhase()
     {
         $this->logger->info("Next phase");
-        $this->current_hand->nextPhase();
-        $this->current_hand->playPhase();
+        $this->currentHand->nextPhase();
+        $this->currentHand->playPhase();
     }
 
     public function onPhaseStateUpdate(PhaseState $event): void
@@ -175,7 +175,7 @@ class Table implements EventSubscriberInterface
 
         if ($event->getAction() === "player_fold") {
             $this->logger->info("Table received player fold instruction", context: ["data" => $event->getEventData()]);
-            $this->current_hand->foldPlayer($event->getEventData()["player_id"]);
+            $this->currentHand->foldPlayer($event->getEventData()["player_id"]);
         }
 
         $this->broadcastJson(["table_state" => "table_update", "data" => $event->getEventData(), "action" => $event->getAction()]);
