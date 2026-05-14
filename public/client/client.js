@@ -217,6 +217,12 @@ document.addEventListener("client_message", (e) => {
         handleAskBet(e.detail);
         return;
     }
+
+    // Bet has been acnknowledged, we can hide betting actions
+    if (e.detail.action === "ack_bet") {
+        document.querySelector(".player-actions").classList.add("hidden");
+        return;
+    }
 });
 
 function createTableList(tables) {
