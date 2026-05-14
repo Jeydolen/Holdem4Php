@@ -2,19 +2,26 @@
 
 namespace App\Game\Hand\Phase;
 
-use App\Game\Player;
 use App\Game\CardPile\Deck;
+use App\Game\CardPile\ICardPile;
+use App\Game\CardPile\BoardCards;
 
 use App\Event\PhaseState;
 use App\Event\PlayerAction;
+
+use App\Service\CardRank\CardRankEvaluator;
+
 use Psr\Log\LoggerInterface;
 
 class ShowdownPhase extends AbstractPhase
 {
+    private CardRankEvaluator $cardRankEvaluator;
+
     private function __construct(
         protected LoggerInterface $logger,
         private ?int $timeout,
     ) {
+        $this->cardRankEvaluator = new CardRankEvaluator();
     }
 
     public function onPlayerAction(PlayerAction $event): void
@@ -22,10 +29,26 @@ class ShowdownPhase extends AbstractPhase
         // We dont use any player action on this phase
     }
 
-    public function play(array &$players, Deck &$deck): void
+    public function play(array &$players, Deck &$deck, ?ICardPile $boardCardPile): void
     {
-        $this->dispatcher->dispatch(new PhaseState("next_phase"));
-}
+        $playerHandStrength = [];
+        $highest = 0;
+        foreach ($players as $player) {
+            $playerCards = $player->getHoleCards()->getCards();
+            $evaluation = $this->cardRankEvaluator->evaluate(new BoardCards(7, true, [...$boardCardPile->getCards(), ...$playerCards]));
+            $playerHandStrength[$player->getUserId()] = $evaluation;
+
+            if ($evaluation > $highest) {
+                $highest = $evaluation;
+            }
+        }
+
+        // Find players from highest hand
+        $winningPlayers = array_filter($playerHandStrength, fn($value) => $value === $highest);
+
+        foreach ($winningPlayers as $playerId => $value) {
+            $this->dispatcher->dispatch(new PhaseState("player_won", ["player_id" => $playerId, "hand_value" => $value]));
+        }
 
         $this->endPhase();
     }

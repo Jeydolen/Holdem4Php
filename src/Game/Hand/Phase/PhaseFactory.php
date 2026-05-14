@@ -16,6 +16,7 @@ class PhaseFactory
         "betting_phase" => BettingPhase::class,
         "shuffle_deck_phase" => ShuffleDeckPhase::class,
         "draw_board_card_phase" => DrawBoardCardPhase::class,
+        "showdown_phase" => ShowdownPhase::class,
     ];
 
     public function create(string $type, ?int $timeout, array $data): IPhase
