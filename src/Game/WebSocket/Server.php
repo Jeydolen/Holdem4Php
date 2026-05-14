@@ -55,7 +55,7 @@ class Server
 
         // Emitted when data received
         $ws_worker->onMessage = function ($connection, $data) {
-            $this->logger->info("New message", ["data" => $data]);
+            $this->logger->debug("New message", ["data" => $data]);
             $this->onMessage(new ConnectionWrapper($connection, $this->serializer), $data);
         };
 
