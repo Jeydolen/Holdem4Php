@@ -105,9 +105,10 @@ class BettingPhaseTest extends TestCase
 
     public function testAfterFirstPlayerActsSecondPlayerIsAsked(): void
     {
-        $p1 = $this->makePlayer("p1");
+        $p1 = $this->makePlayerMock("p1");
         $p2 = $this->makePlayerMock("p2");
 
+        $p1->expects($this->once())->method("askBet");
         $p2->expects($this->once())->method("askBet");
 
         $phase = $this->makePhase();
@@ -119,8 +120,10 @@ class BettingPhaseTest extends TestCase
 
     public function testAllPlayersActDispatchesNextPhase(): void
     {
-        $p1 = $this->makePlayer("p1");
+        $p1 = $this->makePlayerMock("p1");
         $p2 = $this->makePlayer("p2");
+
+        $p1->expects($this->exactly(2))->method("askBet");
 
         $phase = $this->makePhase();
         $players = [$p1, $p2];
@@ -128,6 +131,8 @@ class BettingPhaseTest extends TestCase
 
         $this->sendAction($p1, PlayerBettingActionEnum::CHECK);
         $this->sendAction($p2, PlayerBettingActionEnum::BET, 50);
+
+        // This should not work because the phase should ask first player again
 
         $this->assertContains("next_phase", $this->dispatchedActions);
     }
@@ -145,11 +150,12 @@ class BettingPhaseTest extends TestCase
         // so <= 1 active player triggers next_phase without asking p2
         $this->sendAction($p1, PlayerBettingActionEnum::FOLD);
 
-        $this->assertContains("next_phase", $this->dispatchedActions);
-        $this->assertNotContains(
-            array_filter($this->dispatchedActions, fn($a) => $a === "next_phase"),
-            []
-        );
+        // In this case precisely we should have 0: player_fold
+        $this->assertEquals("player_fold", $this->dispatchedActions[0]);
+        // Then 1: next_phase
+        $this->assertEquals("next_phase", $this->dispatchedActions[1]);
+
+        $this->assertEquals(2, \sizeof($this->dispatchedActions));
     }
 
     public function testOutOfTurnActionIsIgnored(): void
