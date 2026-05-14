@@ -45,6 +45,10 @@ class BettingPhase extends AbstractPhase
         $this->logger->info("Playing phase", ["phase" => (self::class), "max_betting_amount" => $this->maxBettingAmount]);
         if (\count($players) <= 1) {
             $this->logger->info("Not enough players to play the phase", ["phase" => (self::class)]);
+
+            // Don't forget to all cancel timers
+            Timer::delAll();
+
             $this->endPhase();
             return;
         }
@@ -60,7 +64,7 @@ class BettingPhase extends AbstractPhase
 
         $timeoutDate = null;
         if (!empty($this->timeout)) {
-            $timeoutDate = new DateTimeImmutable()->add(DateInterval::createFromDateString("+ {$this->timeout} seconds"));
+            $timeoutDate = (new DateTimeImmutable())->add(DateInterval::createFromDateString("+ {$this->timeout} seconds"));
             $this->timerId = Timer::add($this->timeout, function () use ($player) {
                 $this->logger->info("Player did not bet, folding player", ["player_id" => $player->getUserId()]);
                 $this->dispatcher->dispatch(new PhaseState("player_fold", ["player_id" => $player->getUserId()]));
@@ -77,13 +81,20 @@ class BettingPhase extends AbstractPhase
         );
     }
 
+    private function cancelCurrentTimer(): void
+    {
+        if (!empty($this->timerId)) {
+            $result = Timer::del($this->timerId);
+            $this->logger->debug("Canceling timer {timer_id}, result: {result}", ["timer_id" => $this->timerId, "result" => $result]);
+            $this->timerId = null;
+        }
+    }
+
     private function nextPlayer(): void
     {
         // Cancel the timer of the current player before moving on
-        if (!empty($this->timerId)) {
-            Timer::del($this->timerId);
-            $this->timerId = null;
-        }
+        $this->cancelCurrentTimer();
+
 
         $activePlayers = array_filter(
             $this->players,
@@ -121,14 +132,17 @@ class BettingPhase extends AbstractPhase
 
     public function onPlayerAction(PlayerAction $event): void
     {
-        $this->logger->debug("Player action", [
-            "class" => self::class,
-            "event_player" => $event->getPlayer()->getUserId(),
-            "waiting_player" => $this->players[$this->currentPlayerIndex]?->getUserId(),
-            "data" => $event->getEventData()
-        ]);
+        $player = $event->getPlayer();
+        $this->logger->debug(
+            "Waiting for player {player} timer {timer_id} event player {event_player}",
+            [
+                "player" => $this->players[$this->currentPlayerIndex] ?? null,
+                "timer_id" => $this->timerId,
+                "event_player" => $player,
+            ]
+        );
 
-        if ($event->getPlayer() !== $this->players[$this->currentPlayerIndex]) {
+        if ($player !== $this->players[$this->currentPlayerIndex]) {
             return;
         }
 
@@ -137,18 +151,26 @@ class BettingPhase extends AbstractPhase
             return;
         }
 
+        $event->stopPropagation();
+
         $player_betting_action = PlayerBettingActionEnum::tryFrom($data["betting_action"]);
         if (empty($player_betting_action)) {
             throw new InvalidPlayerBettingActionException();
         }
 
-        $this->logger->info("Player betting action", ["data" => $data, "betting_action" => $player_betting_action]);
+        $this->logger->info("Player betting action", [
+            "betting_action" => $player_betting_action,
+            "betting_amount" => $data["betting_amount"] ?? null,
+            "player_id" => $player->getUserId()
+        ]);
 
         if ($player_betting_action === PlayerBettingActionEnum::FOLD) {
-            $this->foldedPlayerIds[] = $event->getPlayer()->getUserId();
+            $this->foldedPlayerIds[] = $player->getUserId();
         }
 
-        $this->bettingManager->play($event->getPlayer()->getUserId(), $player_betting_action, $data["betting_amount"] ?? null);
+        $this->bettingManager->play($player->getUserId(), $player_betting_action, $data["betting_amount"] ?? null);
+        // Send player acknowledgement
+        $player->sendMessage(["action" => "ack_bet"]);
 
         $this->nextPlayer();
     }
