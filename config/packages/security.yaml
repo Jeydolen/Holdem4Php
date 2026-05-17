@@ -16,12 +16,25 @@ security:
             # Ensure dev tools and static assets are always allowed
             pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
-        main:
-            security: false
-            lazy: true
-            provider: app_user_provider
-            custom_authenticator: App\Security\Authenticator
 
+        register:
+            security: false
+            pattern: ^/authentication/register$
+            stateless: true
+
+        login: 
+            pattern: ^/authentication/login$
+            custom_authenticator: App\Security\PasswordAuthenticator
+            stateless: true
+        
+        refresh-token:
+            pattern: ^/authentication/refresh$
+            custom_authenticator: App\Security\RefreshPasetoAuthenticator
+            stateless: true
+            
+        main:
+            custom_authenticator: App\Security\PasetoAuthenticator
+            stateless: true
             # Activate different ways to authenticate:
             # https://symfony.com/doc/current/security.html#the-firewall
 
@@ -30,8 +43,12 @@ security:
 
     # Note: Only the *first* matching rule is applied
     access_control:
-        # - { path: ^/admin, roles: ROLE_ADMIN }
-        # - { path: ^/profile, roles: ROLE_USER }
+        - { path: ^/admin, roles: ROLE_ADMIN }
+        - { path: ^/authentication, roles: PUBLIC_ACCESS  }
+        - { path: ^/, roles: ROLE_USER  }
+
+    role_hierarchy:
+        ROLE_ADMIN: ROLE_USER
 
 when@test:
     security:

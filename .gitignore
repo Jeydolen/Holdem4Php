@@ -17,3 +17,6 @@
 
 # You need to retrieve this file from artifacts or create it with TwoPlusTwo evaluator
 src/Service/CardRank/HandRanks.dat
+
+# Paseto keys used for authentication
+/keys/

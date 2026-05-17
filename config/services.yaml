@@ -23,5 +23,16 @@ services:
             - '../src/Game/Hand/Phase/'
             - '../src/Game/Table/Table.php'
 
+    App\Controller\AuthenticationController:
+        arguments:
+            - '%kernel.project_dir%/%env(AUTH_PRIVATE_KEY_PATH)%'
+
+    App\Security\PasetoAuthenticator:
+        arguments:
+            - '%kernel.project_dir%/%env(AUTH_PUBLIC_KEY_PATH)%'
+
+    App\Security\RefreshPasetoAuthenticator:
+        arguments:
+            - '%kernel.project_dir%/%env(AUTH_PUBLIC_KEY_PATH)%'
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
