@@ -151,6 +151,14 @@ final class AuthenticationController extends AbstractController
             "refresh_token" => $refreshToken
         ]);
 
+        // Replace cookie for compatible clients (navigator)
+        $response->headers->setCookie(
+            Cookie::create("refresh_token", $refreshToken)
+                ->withHttpOnly()
+                ->withSecure()
+                ->withSameSite(Cookie::SAMESITE_STRICT)
+        );
+
         return $response;
     }
 }
