@@ -1,12 +1,14 @@
 info:
-  name: Delete rule
+  name: Delete variant
   type: http
   seq: 3
 
 http:
   method: DELETE
-  url: "{{base_url}}/game/delete_rule/1"
-  auth: inherit
+  url: "{{base_url}}/game/delete_variant/1"
+  auth:
+    type: bearer
+    token: "{{access_token}}"
 
 settings:
   encodeUrl: true

@@ -1,15 +1,16 @@
 info:
-  name: Create new table rules
+  name: Create new variant
   type: http
   seq: 1
 
 http:
   method: POST
-  url: "{{base_url}}/game/create_table_rules"
+  url: "{{base_url}}/game/create_variant"
   body:
     type: json
     data: |-
       {
+        "name": "Texas Holdem",
         "maxPlayers": 4,
         "tableType": "cash_game",
         "phases": [
@@ -95,7 +96,9 @@ http:
           }
         }
       }
-  auth: inherit
+  auth:
+    type: bearer
+    token: "{{access_token}}"
 
 settings:
   encodeUrl: true
