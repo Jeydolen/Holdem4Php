@@ -2,6 +2,7 @@
 
 namespace App\Game;
 
+use App\Entity\User;
 use App\Event\PlayerAction;
 
 use App\Game\Card\Card;
@@ -26,12 +27,12 @@ class Player implements EventSubscriberInterface
      * because a player is connected to a single table but a user might not
      * @var mixed
      */
-    private mixed $user;
+    private User $user;
 
     private ICardPile $hole_cards;
 
     public function __construct(
-        string $user,
+        User $user,
         private ConnectionWrapper $connection,
         private LoggerInterface $logger
     ) {
@@ -51,8 +52,7 @@ class Player implements EventSubscriberInterface
 
     public function getUserId(): string
     {
-        // TODO: Adapt when user is a real object
-        return $this->user;
+        return $this->user->getUserId();
     }
 
     public function isSame(Player $player): bool
