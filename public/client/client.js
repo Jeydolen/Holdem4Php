@@ -6,16 +6,16 @@ class Client {
     #log_element;
 
     /** @var string */
-    #user_id;
+    #access_token;
 
     /** @var string */
     #table_id;
 
     #tables = [];
 
-    constructor(log_element, user_id) {
+    constructor(log_element, access_token) {
         this.#log_element = log_element;
-        this.#user_id = user_id;
+        this.#access_token = access_token;
     }
 
     connect(port) {
@@ -26,9 +26,9 @@ class Client {
         this.#websocket.onopen = (event) => {
             if (event.data) {
                 this.#log_element.append(event.data);
+                document.dispatchEvent(new CustomEvent("client_message", { detail: JSON.parse(event.data) }));
             }
 
-            this.getTables();
             document.dispatchEvent(new CustomEvent("client_connected"));
         }
 
@@ -45,12 +45,17 @@ class Client {
         };
 
         this.#websocket.onclose = (event) => {
-            document.dispatchEvent(new CustomEvent("client_disconnected"));
+            document.dispatchEvent(new CustomEvent("client_disconnected", { detail: { previousEvent: event } }));
         }
     }
 
+    login() {
+        this.sendJson({ action: "login", token: this.#access_token });
+        return;
+    }
+
     getPlayerId() {
-        return this.#user_id;
+        return this.#access_token;
     }
 
     getTableId() {
@@ -65,39 +70,52 @@ class Client {
         this.sendJson({ "action": "listTables" });
     }
 
-    connectToTable() {
+    #tableAction(data) {
         if (!this.#table_id || this.#table_id.length <= 0) { return; }
 
-        this.sendJson({ "action": "playerJoin", "table_id": this.#table_id, "user_id": this.#user_id });
+        this.sendJson({ "table_id": this.#table_id, ...data });
+    }
+
+    connectToTable() {
+        this.#tableAction({ action: "playerJoin" });
     }
 
     quitTable() {
-        if (!this.#table_id || this.#table_id.length <= 0) { return; }
-
-        this.sendJson({ "action": "playerQuit", "table_id": this.#table_id, "user_id": this.#user_id });
+        this.#tableAction({ action: "playerQuit" });
     }
 
     startGame() {
-        if (!this.#table_id || this.#table_id.length <= 0) { return; }
-
-        this.sendJson({ "action": "startGame", "table_id": this.#table_id, "user_id": this.#user_id });
+        this.#tableAction({ "action": "startGame" });
     }
 
     getState() {
-        if (!this.#table_id || this.#table_id.length <= 0) { return; }
-
-        this.sendJson({ "action": "playerGetState", "table_id": this.#table_id, "user_id": this.#user_id });
+        this.#tableAction({ "action": "playerGetState" });
     }
 
     sendPlayerAction(data) {
-        if (!this.#table_id || this.#table_id.length <= 0) { return; }
-
-        this.sendJson({ "action": "playerAction", "table_id": this.#table_id, "user_id": this.#user_id, ...data });
+        this.#tableAction({ "action": "playerAction", ...data });
     }
 
     sendJson(data) {
         this.#websocket.send(JSON.stringify(data));
     }
+}
+
+let accessToken = null;
+async function refreshToken() {
+    return fetch("/authentication/refresh", { method: "POST" })
+        .then(res => {
+            if (res.ok) {
+                return res.json();
+            }
+
+            // Unauthorized -> redirect to login page
+            if (res.status === 401) {
+                window.location.assign("/authentication/login");
+            }
+        })
+        .then(res => accessToken = res.access_token)
+        .catch(e => console.error(e));
 }
 
 function getPort() {
@@ -111,18 +129,6 @@ function getPort() {
     }
 
     return parseInt(port.value);
-}
-
-function getClientId() {
-    const client_id = document.getElementById("client_id");
-    client_id.reportValidity();
-    if (client_id.value.length === 0) {
-        client_id.setCustomValidity("You must specify a client id !");
-        client_id.reportValidity();
-        return null;
-    }
-
-    return client_id.value;
 }
 
 function getTableId() {
@@ -140,16 +146,14 @@ function getTableId() {
 
 let client = null;
 document.addEventListener("DOMContentLoaded", () => {
+    refreshToken();
     document.querySelectorAll(".client-actions button").forEach(el => { el.disabled = true; });
 
     document.getElementById("connect_to_server").onclick = () => {
         const port = getPort();
         if (!port) { return; }
 
-        const client_id = getClientId();
-        if (!client_id) { return; }
-
-        client = new Client(document.getElementById("message_log"), client_id);
+        client = new Client(document.getElementById("message_log"), accessToken);
         client.connect(port);
     }
 
@@ -195,6 +199,12 @@ document.addEventListener("client_disconnected", () => {
 
 document.addEventListener("client_message", (e) => {
     console.log(e.detail)
+
+    if (e.detail.action === "need_auth") {
+        client.login();
+        return;
+    }
+
     if (e.detail.tables) {
         createTableList(e.detail.tables);
         return;

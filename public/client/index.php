@@ -13,11 +13,6 @@
 <body>
     <div style="display: flex; flex-direction: row;">
         <div>
-            <label for="client_id">Client id:</label>
-            <input type="text" name="client_id" id="client_id">
-        </div>
-
-        <div>
             <label for="websocket_port">Port:</label>
             <input type="number" name="websocket_port" id="websocket_port" value="1234" min="1" max="65536">
             <button id="connect_to_server" type="button">Connect to Websocket server</button>
