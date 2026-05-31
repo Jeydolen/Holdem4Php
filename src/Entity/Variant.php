@@ -8,28 +8,32 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
-#[Groups("show_extended_rule")]
+#[Groups("show_extended_variant")]
 #[ORM\Entity(repositoryClass: VariantRepository::class)]
 class Variant
 {
+    #[Groups("show_variant")]
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $variant_id = null;
 
+    #[Groups("show_variant")]
     #[ORM\Column]
     private ?int $max_players = null;
 
+    #[Groups("show_variant")]
     #[ORM\Column(length: 255)]
     private ?string $table_type = null;
 
+    #[Groups("show_variant")]
     #[ORM\Column(length: 100)]
     private ?string $name = null;
 
     /**
      * @var Collection<int, VariantCards>
      */
-    #[ORM\ManyToMany(targetEntity: VariantCards::class, mappedBy: 'variant')]
+    #[ORM\OneToMany(targetEntity: VariantCards::class, mappedBy: 'variant', orphanRemoval: true)]
     private Collection $variantCards;
 
     /**
@@ -40,7 +44,6 @@ class Variant
 
     public function __construct()
     {
-        $this->phases = new ArrayCollection();
         $this->variantCards = new ArrayCollection();
         $this->variantPhases = new ArrayCollection();
     }
@@ -94,6 +97,7 @@ class Variant
         return $this->variantCards;
     }
 
+    #[Groups("show_card")]
     public function getCards(): array
     {
         return $this->variantCards->map(fn(VariantCards $variantCard) => $variantCard->getCard())->toArray();
@@ -103,7 +107,7 @@ class Variant
     {
         if (!$this->variantCards->contains($variantCard)) {
             $this->variantCards->add($variantCard);
-            $variantCard->addVariant($this);
+            $variantCard->setVariant($this);
         }
 
         return $this;
@@ -112,7 +116,10 @@ class Variant
     public function removeVariantCard(VariantCards $variantCard): static
     {
         if ($this->variantCards->removeElement($variantCard)) {
-            $variantCard->removeVariant($this);
+            // set the owning side to null (unless already changed)
+            if ($variantCard->getVariant() === $this) {
+                $variantCard->setVariant(null);
+            }
         }
 
         return $this;
@@ -124,6 +131,12 @@ class Variant
     public function getVariantPhases(): Collection
     {
         return $this->variantPhases;
+    }
+
+    #[Groups("show_phase")]
+    public function getPhases(): array
+    {
+        return $this->variantPhases->map(fn(VariantPhases $variantPhases) => $variantPhases->getPhase())->toArray();
     }
 
     public function addVariantPhase(VariantPhases $variantPhase): static

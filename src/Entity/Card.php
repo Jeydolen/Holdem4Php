@@ -10,7 +10,6 @@ use App\Repository\CardRepository;
 use Doctrine\ORM\Mapping as ORM;
 
 use Symfony\Component\Serializer\Attribute\Groups;
-use Symfony\Component\Serializer\Attribute\Ignore;
 
 use App\Game\Card\Card as GameCard;
 
@@ -22,7 +21,7 @@ class Card
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private ?int $id = null;
+    private ?int $card_id = null;
 
     #[Groups("show_card")]
     #[ORM\Column(length: 10)]
@@ -32,9 +31,6 @@ class Card
     #[ORM\Column(length: 10)]
     private ?string $symbol = null;
 
-    #[Ignore()]
-    #[ORM\ManyToOne(inversedBy: 'cards')]
-    private ?TableRules $tableRules = null;
 
     public static function fromGameCard(GameCard $gameCard): self
     {
@@ -54,9 +50,9 @@ class Card
         return $gameCard;
     }
 
-    public function getId(): ?int
+    public function getCardId(): ?int
     {
-        return $this->id;
+        return $this->card_id;
     }
 
     public function getRank(): ?string
@@ -82,17 +78,4 @@ class Card
 
         return $this;
     }
-
-    public function getTableRules(): ?TableRules
-    {
-        return $this->tableRules;
-    }
-
-    public function setTableRules(?TableRules $tableRules): static
-    {
-        $this->tableRules = $tableRules;
-
-        return $this;
-    }
-
 }

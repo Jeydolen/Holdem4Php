@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\PhaseRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
@@ -14,7 +16,7 @@ class Phase
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private ?int $id = null;
+    private ?int $phase_id = null;
 
     #[Groups("show_phase")]
     #[ORM\Column]
@@ -28,16 +30,24 @@ class Phase
     #[ORM\Column(length: 255)]
     private ?string $type = null;
 
-    #[ORM\ManyToOne(inversedBy: 'phases')]
-    private ?TableRules $table_rules = null;
-
     #[Groups("show_phase")]
     #[ORM\Column(nullable: true)]
     private ?int $timeout = null;
 
+    /**
+     * @var Collection<int, VariantPhases>
+     */
+    #[ORM\OneToMany(targetEntity: VariantPhases::class, mappedBy: 'phase', orphanRemoval: true)]
+    private Collection $variantPhases;
+
+    public function __construct()
+    {
+        $this->variantPhases = new ArrayCollection();
+    }
+
     public function getId(): ?int
     {
-        return $this->id;
+        return $this->phase_id;
     }
 
     public function getPriority(): ?int
@@ -76,18 +86,6 @@ class Phase
         return $this;
     }
 
-    public function getTableRules(): ?TableRules
-    {
-        return $this->table_rules;
-    }
-
-    public function setTableRules(?TableRules $table_rules): static
-    {
-        $this->table_rules = $table_rules;
-
-        return $this;
-    }
-
     public function getTimeout(): ?int
     {
         return $this->timeout;
@@ -96,6 +94,36 @@ class Phase
     public function setTimeout(?int $timeout): static
     {
         $this->timeout = $timeout;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, VariantPhases>
+     */
+    public function getVariantPhases(): Collection
+    {
+        return $this->variantPhases;
+    }
+
+    public function addVariantPhase(VariantPhases $variantPhase): static
+    {
+        if (!$this->variantPhases->contains($variantPhase)) {
+            $this->variantPhases->add($variantPhase);
+            $variantPhase->setPhase($this);
+        }
+
+        return $this;
+    }
+
+    public function removeVariantPhase(VariantPhases $variantPhase): static
+    {
+        if ($this->variantPhases->removeElement($variantPhase)) {
+            // set the owning side to null (unless already changed)
+            if ($variantPhase->getPhase() === $this) {
+                $variantPhase->setPhase(null);
+            }
+        }
 
         return $this;
     }

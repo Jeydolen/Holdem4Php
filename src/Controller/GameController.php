@@ -5,12 +5,14 @@ namespace App\Controller;
 use ReflectionClass;
 use ReflectionProperty;
 
-use App\DTO\TableRulesDTO;
+use App\DTO\VariantDTO;
 use App\DTO\Phase\PhaseDTO;
 
 use App\Entity\Card;
 use App\Entity\Phase;
-use App\Entity\TableRules;
+use App\Entity\Variant;
+use App\Entity\VariantCards;
+use App\Entity\VariantPhases;
 
 use App\Game\CardPile\DeckFactory;
 
@@ -18,30 +20,27 @@ use Doctrine\ORM\EntityManagerInterface;
 
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 #[Route("/game")]
 final class GameController extends AbstractController
 {
-    public function __construct(
-        private EntityManagerInterface $em,
-        private SerializerInterface $serializer
-    ) {
+    public function __construct(private EntityManagerInterface $em)
+    {
     }
 
-    #[Route("/create_table_rules", methods: ["POST"])]
-    public function createTableRules(#[MapRequestPayload()] TableRulesDTO $tableRulesDTO): JsonResponse
+    #[Route("/create_variant", methods: ["POST"])]
+    public function createVariant(#[MapRequestPayload()] VariantDTO $variantDTO): JsonResponse
     {
-        $table_rule = new TableRules();
-        $table_rule->setMaxPlayers($tableRulesDTO->maxPlayers);
-        $table_rule->setTableType($tableRulesDTO->tableType->value);
+        $variant = new Variant();
+        $variant->setMaxPlayers($variantDTO->maxPlayers);
+        $variant->setTableType($variantDTO->tableType->value);
+        $variant->setName($variantDTO->name);
 
-        $this->em->persist($table_rule);
-        foreach ($tableRulesDTO->phases as $phaseDTO) {
+        $this->em->persist($variant);
+        foreach ($variantDTO->phases as $phaseDTO) {
             $phase = new Phase();
-            $phase->setTableRules($table_rule);
             $phase->setPriority($phaseDTO->priority);
             $phase->setTimeout($phaseDTO->timeout);
             $phase->setType($phaseDTO->getType());
@@ -53,17 +52,27 @@ final class GameController extends AbstractController
             }
 
             $this->em->persist($phase);
+
+            $variantPhase = new VariantPhases();
+            $variantPhase->setVariant($variant);
+            $variantPhase->setPhase($phase);
+            $this->em->persist($variantPhase);
         }
 
-        $deck = DeckFactory::create($tableRulesDTO->deckRules);
+
+        $deck = DeckFactory::create($variantDTO->deckRules);
         foreach ($deck->getCards() as $card) {
             $card_entity = Card::fromGameCard($card);
             $this->em->persist($card_entity);
-            $table_rule->addCard($card_entity);
+
+            $variantCard = new VariantCards();
+            $variantCard->setCard($card_entity);
+            $variantCard->setVariant($variant);
+            $this->em->persist($variantCard);
         }
 
         $this->em->flush();
-        return $this->json(["rule" => $table_rule,], context: ["groups" => ["show_extended_rule", "show_phase", "show_card"]]);
+        return $this->json(["variant" => $variant,], context: ["groups" => ["show_extended_rule", "show_phase", "show_card"]]);
     }
 
     private function getAdditionnalProperties(object $object, object|string $baseObject): array
@@ -86,27 +95,26 @@ final class GameController extends AbstractController
         return $result;
     }
 
-    #[Route("/get_all_rules", methods: ["GET"])]
-    public function getAllRules(): JsonResponse
+    #[Route("/get_all_variants", methods: ["GET"])]
+    public function getAllVariants(): JsonResponse
     {
-        $rules = $this->em->getRepository(TableRules::class)->findAll();
-        return $this->json(["rules" => $rules], context: ["groups" => ["show_extended_rule", "show_phase", "show_card"]]);
+        $variants = $this->em->getRepository(Variant::class)->findAll();
+        return $this->json(["variants" => $variants], context: ["groups" => ["show_variant", "show_phase", "show_card"]]);
     }
 
 
-    #[Route("/delete_rule/{id}", methods: ["DELETE"])]
-
-    public function deleteRule(int $id): JsonResponse
+    #[Route("/delete_variant/{id}", methods: ["DELETE"])]
+    public function deleteVariant(int $id): JsonResponse
     {
-        $rule = $this->em->getRepository(TableRules::class)->findOneBy(["id" => $id]);
+        $variant = $this->em->getRepository(Variant::class)->findOneBy(["variant_id" => $id]);
 
-        if (empty($rule)) {
+        if (empty($variant)) {
             throw $this->createNotFoundException();
         }
 
-        $this->em->remove($rule);
+        $this->em->remove($variant);
         $this->em->flush();
 
-        return $this->json(["removed" => true, "rule_id" => $id]);
+        return $this->json(["removed" => true, "variant_id" => $id]);
     }
 }
