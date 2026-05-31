@@ -2,22 +2,22 @@
 
 namespace App\Repository;
 
-use App\Entity\TableRules;
+use App\Entity\Variant;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<TableRules>
+ * @extends ServiceEntityRepository<Variant>
  */
-class TableRulesRepository extends ServiceEntityRepository
+class VariantRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, TableRules::class);
+        parent::__construct($registry, Variant::class);
     }
 
     //    /**
-    //     * @return TableRules[] Returns an array of TableRules objects
+    //     * @return Variant[] Returns an array of Variant objects
     //     */
     //    public function findByExampleField($value): array
     //    {
@@ -31,7 +31,7 @@ class TableRulesRepository extends ServiceEntityRepository
     //        ;
     //    }
 
-    //    public function findOneBySomeField($value): ?TableRules
+    //    public function findOneBySomeField($value): ?Variant
     //    {
     //        return $this->createQueryBuilder('t')
     //            ->andWhere('t.exampleField = :val')
