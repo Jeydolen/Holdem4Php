@@ -2,14 +2,21 @@
 
 namespace App\Game\WebSocket;
 
+use App\Entity\User;
 use Symfony\Component\Serializer\SerializerInterface;
 use Workerman\Connection\ConnectionInterface;
 use Workerman\Connection\TcpConnection;
 
 class ConnectionWrapper extends ConnectionInterface
 {
-    public function __construct(private TcpConnection $connection, private SerializerInterface $serializer)
-    {
+    public int $auth_timer_id;
+
+    private ?User $user = null;
+
+    public function __construct(
+        private TcpConnection $connection,
+        private SerializerInterface $serializer
+    ) {
     }
 
     public function close(mixed $data = null, bool $raw = false): void
@@ -68,4 +75,13 @@ class ConnectionWrapper extends ConnectionInterface
         return $this->connection->isIpV6();
     }
 
+    public function setUser(User $user)
+    {
+        $this->user = $user;
+    }
+
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
 }

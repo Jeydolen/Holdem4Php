@@ -21,10 +21,19 @@ use App\Game\Table\TableFactory;
 use App\Game\Table\TableRegistry;
 use App\Game\Hand\Phase\PhaseFactory;
 
-use App\Repository\TableRulesRepository;
+use App\Repository\UserRepository;
+use App\Repository\VariantRepository;
+
+use ParagonIE\Paseto\Parser;
+use ParagonIE\Paseto\Rules\ValidAt;
+use ParagonIE\Paseto\Rules\IdentifiedBy;
+use ParagonIE\Paseto\ProtocolCollection;
+use ParagonIE\Paseto\Exception\PasetoException;
+use ParagonIE\Paseto\Keys\Base\AsymmetricPublicKey;
 
 use Symfony\Component\Serializer\SerializerInterface;
-
+use Symfony\Component\Security\Core\Exception\BadCredentialsException;
+use Workerman\Timer;
 
 class Server
 {
@@ -32,12 +41,17 @@ class Server
 
     private TableFactory $tableFactory;
 
+    private AsymmetricPublicKey $publicKey;
+
     public function __construct(
+        string $publicKeyPath,
         private SerializerInterface $serializer,
-        private TableRulesRepository $tableRulesRepository,
+        private VariantRepository $variantRepository,
+        private UserRepository $userRepository,
         private LoggerInterface $logger,
         private TableRegistry $tableRegistry
     ) {
+        $this->publicKey = AsymmetricPublicKey::importPem(file_get_contents($publicKeyPath));
         $this->phaseFactory = new PhaseFactory($this->logger);
         $this->tableFactory = new TableFactory($this->logger);
     }
@@ -50,19 +64,20 @@ class Server
         // Emitted when new connection come
         $ws_worker->onConnect = function (TcpConnection $connection) {
             $this->logger->info("New connection", ["connection_status" => $connection->getStatus()]);
-            $this->onConnect(new ConnectionWrapper($connection, $this->serializer));
+            $connection->wrapper = new ConnectionWrapper($connection, $this->serializer);
+            $this->onConnect($connection->wrapper);
         };
 
         // Emitted when data received
         $ws_worker->onMessage = function ($connection, $data) {
             $this->logger->debug("New message", ["data" => $data]);
-            $this->onMessage(new ConnectionWrapper($connection, $this->serializer), $data);
+            $this->onMessage($connection->wrapper, $data);
         };
 
         // Emitted when connection closed
         $ws_worker->onClose = function ($connection) {
             $this->logger->info("Connection closing", ["connection" => $connection]);
-            $conn = new ConnectionWrapper($connection, $this->serializer);
+            $conn = $connection->wrapper;
             $conn->sendJson(["connected" => false]);
         };
 
@@ -77,7 +92,7 @@ class Server
     public function loadTables(): int
     {
         $this->logger->info("Loading table rules");
-        $rules = $this->tableRulesRepository->findAll();
+        $rules = $this->variantRepository->findAll();
         $this->logger->info("Table rules count", ["rules_count" => \sizeof($rules)]);
 
         foreach ($rules as $k => $rule) {
@@ -102,7 +117,7 @@ class Server
             }
 
             $deck_rules = new DeckGenerationDTO();
-            $deck_rules->cards = $rule->getCards()->toArray();
+            $deck_rules->cards = $rule->getCards();
             $deck_rules->maxSize = \sizeof($deck_rules->cards);
             $deck_rules->noDuplicate = false;
             $deck_rules->generationType = DeckGenerationTypeEnum::MANUAL;
@@ -129,13 +144,19 @@ class Server
 
     private function onConnect(ConnectionWrapper $connection): void
     {
-        $connection->sendJson(["connected" => true]);
+        // https://manual.workerman.net/doc/en/faq/close-unauthed-connections.html
+        $connection->sendJson(["connected" => true, "action" => "need_auth"]);
+
+        // Time is in seconds
+        $connection->auth_timer_id = Timer::add(10, function () use ($connection) {
+            $this->logger->info("Client did not authenticate, closing connection...");
+            $connection->close();
+        }, null, false);
     }
 
     private function onMessage(ConnectionWrapper $connection, mixed $data): void
     {
         try {
-            // TODO: Proper authentication mecanism
             try {
                 $json = json_decode($data, associative: true, flags: JSON_THROW_ON_ERROR);
             } catch (JsonException $e) {
@@ -147,22 +168,59 @@ class Server
                 throw new Exception("No action defined !");
             }
 
-            $this->handleActions($connection, $json["action"], $data);
+            if ($json["action"] === "login") {
+                $this->handleLogin($connection, $json);
+                return;
+            }
+
+            $this->handleActions($connection, $json["action"], $json);
         } catch (Exception $e) {
             $this->logger->error($e);
             $connection->sendJson(["error" => $e->getMessage(), "error_type" => get_class($e)]);
         }
     }
 
-    private function handleActions(ConnectionWrapper $connection, string $action, string $data): void
+    private function handleLogin(ConnectionWrapper $connection, array $data): void
     {
+        if (empty($data["token"])) {
+            throw new BadCredentialsException();
+        }
+
+        try {
+            $paseto = Parser::getPublic($this->publicKey, ProtocolCollection::v4())
+                ->addRule(new ValidAt())
+                ->addRule(new IdentifiedBy("access-token"))
+                ->parse($data["token"]);
+        } catch (PasetoException $ex) {
+            $this->logger->info("Invalid token", ["token" => $data["token"], "exception" => $ex]);
+            throw new BadCredentialsException();
+        }
+
+        $user = $this->userRepository->findOneBy(["user_id" => $paseto->getSubject()]);
+        if (empty($user)) {
+            // Should not be possible but we never know
+            throw new BadCredentialsException();
+        }
+
+        $this->logger->info("User authenticated successfully");
+        Timer::del($connection->auth_timer_id);
+
+        $connection->sendJson(["authenticated" => true]);
+        $connection->setUser($user);
+    }
+
+    private function handleActions(ConnectionWrapper $connection, string $action, array $data): void
+    {
+        if (empty($connection->getUser())) {
+            throw new BadCredentialsException("User is not authenticated");
+        }
+
         // TODO: Make a real search
         if ($action === "listTables") {
             $connection->sendJson(["tables" => $this->tableRegistry->getAllTables()]);
             return;
         }
 
-        $data = json_decode($data, associative: true, flags: JSON_THROW_ON_ERROR);
         if (\in_array($action, ["playerJoin", "playerQuit", "startGame", "playerGetState", "playerAction"])) {
             // TODO: Change for proper DTO
             $table_id = $data["table_id"] ?? null;
@@ -175,9 +233,6 @@ class Server
                 throw new Exception("Table does not exist");
             }
 
-            // TODO: Proper player identification with JWT
-            $user_id = $data["user_id"] ?? null;
-
             // TODO: Use real rules for game start
             if ($action === "startGame") {
                 $table->start();
@@ -186,11 +241,7 @@ class Server
             }
 
             if ($action === "playerJoin" || $action === "playerQuit") {
-                if (empty($user_id)) {
-                    throw new Exception("Undefined user");
-                }
-
-                $player = new Player($user_id, $connection, $this->logger);
+                $player = new Player($connection->getUser(), $connection, $this->logger);
 
                 if ($action === "playerJoin") {
                     $table->addPlayer($player);
@@ -201,7 +252,7 @@ class Server
                 return;
             }
 
-            $player = $table->getPlayer($user_id);
+            $player = $table->getPlayer($connection->getUser()->getUserId());
             if (empty($player)) {
                 throw new Exception("Player not found");
             }
