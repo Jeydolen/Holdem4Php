@@ -63,7 +63,6 @@ class RefreshPasetoAuthenticator extends AbstractAuthenticator
                 ->addRule(new IdentifiedBy("refresh-token"))
                 ->parse($token);
         } catch (PasetoException $ex) {
-            dd($ex);
             $this->logger->info("Invalid token", ["token" => $token, "exception" => $ex]);
             throw new BadCredentialsException();
         }
