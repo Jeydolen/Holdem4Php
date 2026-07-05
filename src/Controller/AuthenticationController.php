@@ -9,29 +9,26 @@ use App\Form\RegistrationFormType;
 use DateInterval;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
+
 use ParagonIE\Paseto\Builder;
-use ParagonIE\Paseto\Keys\{Base\AsymmetricPublicKey, Base\AsymmetricSecretKey};
-use ParagonIE\Paseto\Parser;
-use ParagonIE\Paseto\Protocol\Version4;
-use ParagonIE\Paseto\ProtocolCollection;
-use ParagonIE\Paseto\Purpose;
-use ParagonIE\Paseto\Rules\IdentifiedBy;
-use ParagonIE\Paseto\Rules\IssuedBy;
-use ParagonIE\Paseto\Rules\ValidAt;
-use Symfony\Component\HttpFoundation\RedirectResponse;
+use ParagonIE\Paseto\Keys\Base\AsymmetricSecretKey;
+
+use Symfony\Component\HttpFoundation\Cookie;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Cookie;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
+
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 #[Route("/authentication")]
 final class AuthenticationController extends AbstractController
