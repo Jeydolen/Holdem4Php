@@ -23,7 +23,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
-#[Route("/game")]
+#[Route("/admin/game")]
 final class GameController extends AbstractController
 {
     public function __construct(private EntityManagerInterface $em)
