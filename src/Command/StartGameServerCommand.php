@@ -11,7 +11,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Workerman\Worker;
 
 #[AsCommand(
-    name: "StartGameServer",
+    name: "app:start-game-server",
     description: "Start the websocket server",
 )]
 class StartGameServerCommand extends Command
