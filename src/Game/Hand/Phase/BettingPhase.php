@@ -18,7 +18,7 @@ use DateInterval;
 use DateTimeImmutable;
 use Psr\Log\LoggerInterface;
 
-use Workerman\Timer;
+use OpenSwoole\Timer;
 
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
@@ -46,9 +46,6 @@ class BettingPhase extends AbstractPhase
         if (\count($players) <= 1) {
             $this->logger->info("Not enough players to play the phase", ["phase" => (self::class)]);
 
-            // Don't forget to all cancel timers
-            Timer::delAll();
-
             $this->endPhase();
             return;
         }
@@ -65,7 +62,7 @@ class BettingPhase extends AbstractPhase
         $timeoutDate = null;
         if (!empty($this->timeout)) {
             $timeoutDate = (new DateTimeImmutable())->add(DateInterval::createFromDateString("+ {$this->timeout} seconds"));
-            $this->timerId = Timer::add($this->timeout, function () use ($player) {
+            $this->timerId = Timer::after($this->timeout * 1000, function () use ($player) {
                 $this->logger->info("Player did not bet, folding player", ["player_id" => $player->getUserId()]);
                 $this->dispatcher->dispatch(new PhaseState("player_fold", ["player_id" => $player->getUserId()]));
                 $this->nextPlayer();
@@ -84,7 +81,7 @@ class BettingPhase extends AbstractPhase
     private function cancelCurrentTimer(): void
     {
         if (!empty($this->timerId)) {
-            $result = Timer::del($this->timerId);
+            $result = Timer::clear($this->timerId);
             $this->logger->debug("Canceling timer {timer_id}, result: {result}", ["timer_id" => $this->timerId, "result" => $result]);
             $this->timerId = null;
         }

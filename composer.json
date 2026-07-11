@@ -10,6 +10,7 @@
         "doctrine/doctrine-bundle": "^3.2.2",
         "doctrine/doctrine-migrations-bundle": "^4.0",
         "doctrine/orm": "^3.6.2",
+        "openswoole/core": "^26.2",
         "paragonie/paseto": "^3",
         "phpdocumentor/reflection-docblock": "^5",
         "phpstan/phpdoc-parser": "^2.3.2",
@@ -30,10 +31,10 @@
         "symfony/validator": "8.0.*",
         "symfony/yaml": "8.0.*",
         "twig/extra-bundle": "^2.12|^3.0",
-        "twig/twig": "^2.12|^3.0",
-        "workerman/workerman": "^5.1.9"
+        "twig/twig": "^2.12|^3.0"
     },
     "require-dev": {
+        "openswoole/ide-helper": "^26.2",
         "phpunit/phpunit": "^13.0",
         "symfony/browser-kit": "8.0.*",
         "symfony/css-selector": "8.0.*",
