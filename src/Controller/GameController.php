@@ -2,14 +2,17 @@
 
 namespace App\Controller;
 
+use App\Repository\UserRepository;
 use ReflectionClass;
 use ReflectionProperty;
 
 use App\DTO\VariantDTO;
 use App\DTO\Phase\PhaseDTO;
 
+use App\Entity\User;
 use App\Entity\Card;
 use App\Entity\Phase;
+use App\Entity\Bankroll;
 use App\Entity\Variant;
 use App\Entity\VariantCards;
 use App\Entity\VariantPhases;
@@ -18,8 +21,10 @@ use App\Game\CardPile\DeckFactory;
 
 use Doctrine\ORM\EntityManagerInterface;
 
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
@@ -116,5 +121,29 @@ final class GameController extends AbstractController
         $this->em->flush();
 
         return $this->json(["removed" => true, "variant_id" => $id]);
+    }
+
+
+    #[Route("/add_bankroll/{uuid}/{amount}", methods: ["GET"])]
+    public function addBankroll(UserRepository $userRepository, string $uuid, int $amount): JsonResponse
+    {
+        $user = $userRepository->findOneBy(["user_id" => $uuid]);
+        if (empty($user)) {
+            throw $this->createNotFoundException("User not found");
+        }
+
+        $bankroll = $user->getBankroll();
+        if (empty($bankroll)) {
+            $bankroll = new Bankroll();
+            $bankroll->setAmount(0);
+            $bankroll->setUser($user);
+            $this->em->persist($bankroll);
+        }
+
+        $new_amount = $bankroll->getAmount() + $amount;
+        $bankroll->setAmount($new_amount);
+
+        $this->em->flush();
+        return $this->json(["new_amount" => $new_amount]);
     }
 }
