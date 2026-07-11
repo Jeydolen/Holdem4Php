@@ -96,7 +96,7 @@ class Server
         return $server;
     }
 
-    public function close(): void
+    public function closeServer(): void
     {
         $this->logger->info("Received close instruction, exiting server....");
         $this->webSocketServer->shutdown();
