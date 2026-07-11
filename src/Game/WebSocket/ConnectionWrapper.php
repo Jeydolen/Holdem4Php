@@ -3,79 +3,37 @@
 namespace App\Game\WebSocket;
 
 use App\Entity\User;
+use OpenSwoole\WebSocket\Server;
 use Symfony\Component\Serializer\SerializerInterface;
-use Workerman\Connection\ConnectionInterface;
-use Workerman\Connection\TcpConnection;
 
-class ConnectionWrapper extends ConnectionInterface
+class ConnectionWrapper
 {
-    public int $auth_timer_id;
-
     private ?User $user = null;
 
     public function __construct(
-        private TcpConnection $connection,
+        private Server $server,
+        private int $fd,
         private SerializerInterface $serializer
     ) {
     }
 
-    public function close(mixed $data = null, bool $raw = false): void
+    public function close(): void
     {
-        $this->connection->close($data, $raw);
+        $this->server->disconnect($this->fd, Server::WEBSOCKET_CLOSE_NORMAL);
     }
 
-    public function send(mixed $sendBuffer, bool $raw = false): bool|null
+    public function send(mixed $sendBuffer): bool|null
     {
-        return $this->connection->send($sendBuffer, $raw);
+        return $this->server->push($this->fd, $sendBuffer);
     }
 
-    public function sendJson(mixed $data)
+    public function sendJson(mixed $data): bool|null
     {
         $json = $this->serializer->serialize($data, "json");
         return $this->send($json);
     }
 
-    public function getRemoteIp(): string
-    {
-        return $this->connection->getRemoteIp();
-    }
-
-    public function getLocalAddress(): string
-    {
-        return $this->connection->getLocalAddress();
-    }
-
-    public function getRemotePort(): int
-    {
-        return $this->connection->getRemotePort();
-    }
-
-    public function getRemoteAddress(): string
-    {
-        return $this->connection->getRemoteAddress();
-    }
-
-    public function getLocalIp(): string
-    {
-        return $this->connection->getLocalIp();
-    }
-
-    public function getLocalPort(): int
-    {
-        return $this->connection->getLocalPort();
-    }
-
-    public function isIpV4(): bool
-    {
-        return $this->connection->isIpV4();
-    }
-
-    public function isIpV6(): bool
-    {
-        return $this->connection->isIpV6();
-    }
-
-    public function setUser(User $user)
+    public function setUser(User $user): void
     {
         $this->user = $user;
     }

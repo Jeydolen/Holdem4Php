@@ -7,8 +7,12 @@ use JsonException;
 
 use Psr\Log\LoggerInterface;
 
-use Workerman\Worker;
-use Workerman\Connection\TcpConnection;
+
+use OpenSwoole\Table;
+use OpenSwoole\Timer;
+use OpenSwoole\WebSocket\Frame;
+use OpenSwoole\WebSocket\Server as WebSocketServer;
+
 
 use App\DTO\DeckGenerationDTO;
 
@@ -33,7 +37,6 @@ use ParagonIE\Paseto\Keys\Base\AsymmetricPublicKey;
 
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
-use Workerman\Timer;
 
 class Server
 {
@@ -42,6 +45,10 @@ class Server
     private TableFactory $tableFactory;
 
     private AsymmetricPublicKey $publicKey;
+
+    private Table $swooleTable;
+
+    private WebSocketServer $webSocketServer;
 
     public function __construct(
         string $publicKeyPath,
@@ -54,35 +61,45 @@ class Server
         $this->publicKey = AsymmetricPublicKey::importPem(file_get_contents($publicKeyPath));
         $this->phaseFactory = new PhaseFactory($this->logger);
         $this->tableFactory = new TableFactory($this->logger);
+
+        $this->swooleTable = new Table(1024);
+        $this->swooleTable->column("auth_timer_id", Table::TYPE_INT);
+        $this->swooleTable->column("uid", Table::TYPE_STRING, 36);
+        $this->swooleTable->create();
     }
 
-    public function createServer(int $port): Worker
+    public function createServer(int $port): WebSocketServer
     {
-        $ws_worker = new Worker("websocket://0.0.0.0:$port");
-        $this->logger->info("Worker created and listening on port", ["port" => $port]);
+        $server = new WebSocketServer("0.0.0.0", $port);
+        $this->logger->info("WebSocket server created and listening on port", ["port" => $port]);
 
-        // Emitted when new connection come
-        $ws_worker->onConnect = function (TcpConnection $connection) {
-            $this->logger->info("New connection", ["connection_status" => $connection->getStatus()]);
-            $connection->wrapper = new ConnectionWrapper($connection, $this->serializer);
-            $this->onConnect($connection->wrapper);
-        };
+        $server->on("open", function (WebSocketServer $server, \OpenSwoole\Http\Request $request) {
+            $this->logger->info("New connection", ["connection_status" => $request->fd]);
+            $this->onConnect($server, $request->fd);
+        });
 
-        // Emitted when data received
-        $ws_worker->onMessage = function ($connection, $data) {
-            $this->logger->debug("New message", ["data" => $data]);
-            $this->onMessage($connection->wrapper, $data);
-        };
+        $server->on("message", function (WebSocketServer $server, Frame $frame) {
+            $this->logger->debug("New message", ["data" => $frame->data]);
+            $this->onMessage($server, $frame->fd, $frame->data);
+        });
 
         // Emitted when connection closed
-        $ws_worker->onClose = function ($connection) {
-            $this->logger->info("Connection closing", ["connection" => $connection]);
-            $conn = $connection->wrapper;
-            $conn->sendJson(["connected" => false]);
-        };
+        $server->on("close", function (WebSocketServer $server, int $fd) {
+            $this->logger->info("Connection closing", ["connection" => $fd]);
+            $this->swooleTable->del($fd);
+            $server->push($fd, $this->serializer->serialize(["connected" => false], "json"));
+        });
+
+        $this->webSocketServer = $server;
 
         // Run worker
-        return $ws_worker;
+        return $server;
+    }
+
+    public function close(): void
+    {
+        $this->logger->info("Received close instruction, exiting server....");
+        $this->webSocketServer->shutdown();
     }
 
     /**
@@ -142,19 +159,17 @@ class Server
         return \sizeof($rules);
     }
 
-    private function onConnect(ConnectionWrapper $connection): void
+    private function onConnect(WebSocketServer $server, int $fd): void
     {
-        // https://manual.workerman.net/doc/en/faq/close-unauthed-connections.html
-        $connection->sendJson(["connected" => true, "action" => "need_auth"]);
-
-        // Time is in seconds
-        $connection->auth_timer_id = Timer::add(10, function () use ($connection) {
+        $server->push($fd, $this->serializer->serialize(["connected" => true, "action" => "need_auth"], "json"));
+        $timer_id = Timer::after(10 * 1000, function () use ($server, $fd) {
             $this->logger->info("Client did not authenticate, closing connection...");
-            $connection->close();
-        }, null, false);
+            $server->disconnect($fd, reason: "Client did not authenticate");
+        });
+        $this->swooleTable->set($fd, ["auth_timer_id" => $timer_id]);
     }
 
-    private function onMessage(ConnectionWrapper $connection, mixed $data): void
+    private function onMessage(WebSocketServer $server, int $fd, mixed $data): void
     {
         try {
             try {
@@ -163,24 +178,31 @@ class Server
                 throw new Exception("Malformed data sent, please use valid JSON !", 0, $e);
             }
 
-
             if (empty($json["action"])) {
                 throw new Exception("No action defined !");
             }
 
             if ($json["action"] === "login") {
-                $this->handleLogin($connection, $json);
+                $this->handleLogin($server, $fd, $json);
                 return;
             }
+
+            $uid = $this->swooleTable->get($fd, "uid");
+            if (empty($uid)) {
+                return;
+            }
+
+            $connection = new ConnectionWrapper($server, $fd, $this->serializer);
+            $connection->setUser($this->userRepository->findOneBy(["user_id" => $uid]));
 
             $this->handleActions($connection, $json["action"], $json);
         } catch (Exception $e) {
             $this->logger->error($e);
-            $connection->sendJson(["error" => $e->getMessage(), "error_type" => get_class($e)]);
+            $connection->sendJson(["error" => $e->getMessage(), "error_type" => \get_class($e)]);
         }
     }
 
-    private function handleLogin(ConnectionWrapper $connection, array $data): void
+    private function handleLogin(WebSocketServer $server, int $fd, array $data): void
     {
         if (empty($data["token"])) {
             throw new BadCredentialsException();
@@ -203,10 +225,10 @@ class Server
         }
 
         $this->logger->info("User authenticated successfully");
-        Timer::del($connection->auth_timer_id);
+        Timer::clear($this->swooleTable->get($fd, "auth_timer_id"));
 
-        $connection->sendJson(["authenticated" => true]);
-        $connection->setUser($user);
+        $server->push($fd, $this->serializer->serialize(["authenticated" => true], "json"));
+        $this->swooleTable->set($fd, ["uid" => $paseto->getSubject()]);
     }
 
     private function handleActions(ConnectionWrapper $connection, string $action, array $data): void
