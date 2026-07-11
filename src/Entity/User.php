@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
@@ -19,7 +21,7 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 class User implements UserInterface, PasswordAuthenticatedUserInterface, PasswordUpgraderInterface
 {
     #[ORM\Id]
-    #[ORM\Column(type: 'uuid', unique: true)]
+    #[ORM\Column(name: "user_id", type: 'uuid', unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator('doctrine.uuid_generator')]
     private ?Uuid $user_id = null;
@@ -38,6 +40,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Passwor
      */
     #[ORM\Column]
     private ?string $password = null;
+
+    #[ORM\OneToOne(mappedBy: 'user', cascade: ['persist', 'remove'])]
+    private ?Bankroll $bankroll = null;
+
+    /**
+     * @var Collection<int, TablePlayers>
+     */
+    #[ORM\OneToMany(targetEntity: TablePlayers::class, mappedBy: 'user')]
+    private Collection $tablePlayers;
+
+    public function __construct()
+    {
+        $this->tablePlayers = new ArrayCollection();
+    }
 
     public function getUsername(): ?string
     {
@@ -123,5 +139,52 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Passwor
 
     public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void
     {
+    }
+
+    public function getBankroll(): ?Bankroll
+    {
+        return $this->bankroll;
+    }
+
+    public function setBankroll(Bankroll $bankroll): static
+    {
+        // set the owning side of the relation if necessary
+        if ($bankroll->getUser() !== $this) {
+            $bankroll->setUser($this);
+        }
+
+        $this->bankroll = $bankroll;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, TablePlayers>
+     */
+    public function getTablePlayers(): Collection
+    {
+        return $this->tablePlayers;
+    }
+
+    public function addTablePlayer(TablePlayers $tablePlayer): static
+    {
+        if (!$this->tablePlayers->contains($tablePlayer)) {
+            $this->tablePlayers->add($tablePlayer);
+            $tablePlayer->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeTablePlayer(TablePlayers $tablePlayer): static
+    {
+        if ($this->tablePlayers->removeElement($tablePlayer)) {
+            // set the owning side to null (unless already changed)
+            if ($tablePlayer->getUser() === $this) {
+                $tablePlayer->setUser(null);
+            }
+        }
+
+        return $this;
     }
 }
