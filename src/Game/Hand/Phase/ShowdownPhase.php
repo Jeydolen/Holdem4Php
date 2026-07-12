@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Game\Hand\Phase;
-
 
 use App\Event\PhaseState;
 use App\Event\PlayerAction;
@@ -9,31 +7,25 @@ use App\Event\PlayerAction;
 use App\Game\Hand\HandContext;
 use App\Game\CardPile\BoardCards;
 
-use App\Service\CardRank\CardRankEvaluator;
-
 use Psr\Log\LoggerInterface;
 
 class ShowdownPhase extends AbstractPhase
 {
-    private CardRankEvaluator $cardRankEvaluator;
-
-    private function __construct(
-        protected LoggerInterface $logger,
-        private ?int $timeout,
-    ) {
-        $this->cardRankEvaluator = new CardRankEvaluator();
+    private function __construct(protected LoggerInterface $logger)
+    {
     }
 
     public function play(HandContext $context): void
     {
         $players = $context->getPlayerCollection()->getCompetingPlayers();
         $boardCardPile = $context->getBoardCards();
+        $cardRankEvaluator = $context->getCardRankEvaluator();
 
         $playerHandStrength = [];
         $highest = 0;
         foreach ($players as $player) {
             $playerCards = $player->getHoleCards()->getCards();
-            $evaluation = $this->cardRankEvaluator->evaluate(new BoardCards(7, true, [...$boardCardPile->getCards(), ...$playerCards]));
+            $evaluation = $cardRankEvaluator->evaluate(new BoardCards(7, true, [...$boardCardPile->getCards(), ...$playerCards]));
             $playerHandStrength[$player->getUserId()] = $evaluation;
 
             if ($evaluation > $highest) {
@@ -53,7 +45,7 @@ class ShowdownPhase extends AbstractPhase
 
     public static function fromArray(array $data): self
     {
-        $instance = new self($data["logger"], $data["timeout"] ?? null);
+        $instance = new self($data["logger"]);
         return $instance;
     }
 
