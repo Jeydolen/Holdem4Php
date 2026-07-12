@@ -32,9 +32,6 @@ class StartGameServerCommand extends Command implements SignalableCommandInterfa
             $port = 1234;
         }
 
-        pcntl_async_signals(true);
-        pcntl_signal(SIGTERM, fn() => $this->server->closeServer());
-
         $output->writeln(\sprintf("Game server started on port: %d", $port));
         $this->worker = $this->server->createServer($port);
 

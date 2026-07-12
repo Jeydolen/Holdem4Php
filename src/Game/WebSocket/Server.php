@@ -73,6 +73,15 @@ class Server
         $server = new WebSocketServer("0.0.0.0", $port);
         $this->logger->info("WebSocket server created and listening on port", ["port" => $port]);
 
+        $server->on('start', function (WebSocketServer $server) {
+            \OpenSwoole\Process::signal(SIGINT, function () {
+                $this->logger->info("SIGINT closing server...");
+                $this->closeServer();
+            });
+
+            $this->logger->info("Master PID: %d", [$server->master_pid]);
+        });
+
         $server->on("open", function (WebSocketServer $server, \OpenSwoole\Http\Request $request) {
             $this->logger->info("New connection", ["connection_status" => $request->fd]);
             $this->onConnect($server, $request->fd);
