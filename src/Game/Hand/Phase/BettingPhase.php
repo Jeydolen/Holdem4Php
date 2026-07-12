@@ -2,20 +2,21 @@
 
 namespace App\Game\Hand\Phase;
 
-use App\Game\Player;
-use App\Game\CardPile\Deck;
-use App\Game\CardPile\ICardPile;
+use DateInterval;
+use DateTimeImmutable;
 
 use App\Event\PhaseState;
 use App\Event\PlayerAction;
+
+use App\Game\Player;
+use App\Game\Hand\HandContext;
 
 use App\Service\BettingManager;
 
 use App\Enum\PlayerBettingActionEnum;
 use App\Exception\InvalidPlayerBettingActionException;
 
-use DateInterval;
-use DateTimeImmutable;
+
 use Psr\Log\LoggerInterface;
 
 use OpenSwoole\Timer;
@@ -40,8 +41,11 @@ class BettingPhase extends AbstractPhase
     ) {
     }
 
-    public function play(array &$players, Deck &$deck, ?ICardPile $boardCardPile): void
+    public function play(HandContext $context): void
     {
+        $players = $context->getPlayerCollection()->getCompetingPlayers();
+        $this->bettingManager = $context->getBettingManager();
+
         $this->logger->info("Playing phase", ["phase" => (self::class), "max_betting_amount" => $this->maxBettingAmount]);
         if (\count($players) <= 1) {
             $this->logger->info("Not enough players to play the phase", ["phase" => (self::class)]);
@@ -122,7 +126,6 @@ class BettingPhase extends AbstractPhase
     public function withEventDispatcher(EventDispatcher $dispatcher): static
     {
         $this->dispatcher = $dispatcher;
-        $this->bettingManager = new BettingManager($dispatcher);
         $this->dispatcher->addSubscriber($this);
         return $this;
     }
@@ -168,6 +171,17 @@ class BettingPhase extends AbstractPhase
         $this->bettingManager->play($player->getUserId(), $player_betting_action, $data["betting_amount"] ?? null);
         // Send player acknowledgement
         $player->sendMessage(["action" => "ack_bet"]);
+
+        // Ask players again
+        if (\in_array($player_betting_action, BettingManager::NOTABLE_ACTIONS)) {
+            $player->setBetTotalAmount($player->getBetTotalAmount() + $data["betting_amount"]);
+
+            if (empty($this->players[$this->currentPlayerIndex + 1])) {
+                $this->logger->info("Player did a notable action, need to ask every player again");
+                // We set it to -1 because nextPlayer will increment it
+                $this->currentPlayerIndex = -1;
+            }
+        }
 
         $this->nextPlayer();
     }

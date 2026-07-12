@@ -8,14 +8,23 @@ use App\Event\PlayerAction;
 use App\Enum\PlayerBettingActionEnum;
 
 use App\Game\Player;
+use App\Game\PlayerCollection;
+
 use App\Game\CardPile\Deck;
+use App\Game\CardPile\BoardCards;
+
+use App\Game\Hand\HandContext;
 use App\Game\Hand\Phase\BettingPhase;
 
-use PHPUnit\Framework\MockObject\Stub;
-use PHPUnit\Framework\TestCase;
-use PHPUnit\Framework\MockObject\MockObject;
+use App\Service\BettingManager;
+use App\Service\CardRank\CardRankEvaluator;
 
-use Psr\Log\NullLogger;
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
+
+use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\MockObject\Stub;
+use PHPUnit\Framework\MockObject\MockObject;
 
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
@@ -41,11 +50,27 @@ class BettingPhaseTest extends TestCase
 
     private function makePhase(int $maxBettingAmount = 100, ?int $timeout = null): BettingPhase
     {
+        $logger = new Logger("test");
+        if (getenv("DEBUG_LOG")) {
+            $logger->pushHandler(new StreamHandler("php://stdout"));
+        }
+
         return BettingPhase::fromArray([
-            "logger" => new NullLogger(),
+            "logger" => $logger,
             "timeout" => $timeout,
             "maxBettingAmount" => $maxBettingAmount,
         ])->withEventDispatcher($this->dispatcher);
+    }
+
+    private function makeHandContext(array $players)
+    {
+        return new HandContext(
+            $this->deck,
+            new BoardCards(5, true),
+            new PlayerCollection($players),
+            new BettingManager($this->dispatcher),
+            new CardRankEvaluator()
+        );
     }
 
     private function makePlayer(string $id): Player&Stub
@@ -76,7 +101,8 @@ class BettingPhaseTest extends TestCase
     {
         $phase = $this->makePhase();
         $players = [];
-        $phase->play($players, $this->deck, null);
+        $context = $this->makeHandContext($players);
+        $phase->play($context);
 
         $this->assertContains("next_phase", $this->dispatchedActions);
     }
@@ -85,7 +111,8 @@ class BettingPhaseTest extends TestCase
     {
         $phase = $this->makePhase();
         $players = [$this->makePlayer("p1")];
-        $phase->play($players, $this->deck, null);
+        $context = $this->makeHandContext($players);
+        $phase->play($context);
 
         $this->assertContains("next_phase", $this->dispatchedActions);
     }
@@ -100,7 +127,8 @@ class BettingPhaseTest extends TestCase
 
         $phase = $this->makePhase();
         $players = [$p1, $p2];
-        $phase->play($players, $this->deck, null);
+        $context = $this->makeHandContext($players);
+        $phase->play($context);
     }
 
     public function testAfterFirstPlayerActsSecondPlayerIsAsked(): void
@@ -113,7 +141,8 @@ class BettingPhaseTest extends TestCase
 
         $phase = $this->makePhase();
         $players = [$p1, $p2];
-        $phase->play($players, $this->deck, null);
+        $context = $this->makeHandContext($players);
+        $phase->play($context);
 
         $this->sendAction($p1, PlayerBettingActionEnum::CHECK);
     }
@@ -127,14 +156,11 @@ class BettingPhaseTest extends TestCase
 
         $phase = $this->makePhase();
         $players = [$p1, $p2];
-        $phase->play($players, $this->deck, null);
+        $context = $this->makeHandContext($players);
+        $phase->play($context);
 
         $this->sendAction($p1, PlayerBettingActionEnum::CHECK);
         $this->sendAction($p2, PlayerBettingActionEnum::BET, 50);
-
-        // This should not work because the phase should ask first player again
-
-        $this->assertContains("next_phase", $this->dispatchedActions);
     }
 
     public function testNextPhaseIsDispatchedWhenOnlyOnePlayerRemains(): void
@@ -144,18 +170,20 @@ class BettingPhaseTest extends TestCase
 
         $phase = $this->makePhase();
         $players = [$p1, $p2];
-        $phase->play($players, $this->deck, null);
+        $context = $this->makeHandContext($players);
+        $phase->play($context);
 
         // p1 folds - only p2 remains
         // so <= 1 active player triggers next_phase without asking p2
         $this->sendAction($p1, PlayerBettingActionEnum::FOLD);
 
-        // In this case precisely we should have 0: player_fold
-        $this->assertEquals("player_fold", $this->dispatchedActions[0]);
-        // Then 1: next_phase
-        $this->assertEquals("next_phase", $this->dispatchedActions[1]);
+        // In this case precisely we should have 0: player_betting_action 1: player_fold
+        $this->assertEquals("player_betting_action", $this->dispatchedActions[0]);
+        $this->assertEquals("player_fold", $this->dispatchedActions[1]);
+        // Then 2: next_phase
+        $this->assertEquals("next_phase", $this->dispatchedActions[2]);
 
-        $this->assertEquals(2, \sizeof($this->dispatchedActions));
+        $this->assertEquals(3, \sizeof($this->dispatchedActions));
     }
 
     public function testOutOfTurnActionIsIgnored(): void
@@ -167,7 +195,8 @@ class BettingPhaseTest extends TestCase
 
         $phase = $this->makePhase();
         $players = [$p1, $p2];
-        $phase->play($players, $this->deck, null);
+        $context = $this->makeHandContext($players);
+        $phase->play($context);
 
         // p2 tries to act before it is their turn
         $this->sendAction($p2, PlayerBettingActionEnum::CHECK);
@@ -183,7 +212,8 @@ class BettingPhaseTest extends TestCase
 
         $phase = $this->makePhase();
         $players = [$p1, $p2];
-        $phase->play($players, $this->deck, null);
+        $context = $this->makeHandContext($players);
+        $phase->play($context);
 
         $this->sendAction($p1, PlayerBettingActionEnum::BET, 50);
 
@@ -198,7 +228,8 @@ class BettingPhaseTest extends TestCase
 
         $phase = $this->makePhase();
         $players = [$p1, $p2];
-        $phase->play($players, $this->deck, null);
+        $context = $this->makeHandContext($players);
+        $phase->play($context);
 
         $this->sendAction($p1, PlayerBettingActionEnum::BET, 50);
 

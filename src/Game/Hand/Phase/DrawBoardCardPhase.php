@@ -5,8 +5,7 @@ namespace App\Game\Hand\Phase;
 use App\Event\PhaseState;
 use App\Event\PlayerAction;
 
-use App\Game\CardPile\Deck;
-use App\Game\CardPile\ICardPile;
+use App\Game\Hand\HandContext;
 
 use Psr\Log\LoggerInterface;
 
@@ -19,8 +18,11 @@ class DrawBoardCardPhase extends AbstractPhase
     ) {
     }
 
-    public function play(array &$players, Deck &$deck, ?ICardPile $boardCardPile): void
+    public function play(HandContext $context): void
     {
+        $deck = $context->getDeck();
+        $boardCardPile = $context->getBoardCards();
+
         $this->logger->info("Playing phase", ["phase" => (self::class), "draw_number" => $this->drawNumber]);
 
         // In a draw board card phase, we need to add card to the board.

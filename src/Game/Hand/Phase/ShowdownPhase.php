@@ -2,12 +2,12 @@
 
 namespace App\Game\Hand\Phase;
 
-use App\Game\CardPile\Deck;
-use App\Game\CardPile\ICardPile;
-use App\Game\CardPile\BoardCards;
 
 use App\Event\PhaseState;
 use App\Event\PlayerAction;
+
+use App\Game\Hand\HandContext;
+use App\Game\CardPile\BoardCards;
 
 use App\Service\CardRank\CardRankEvaluator;
 
@@ -24,13 +24,11 @@ class ShowdownPhase extends AbstractPhase
         $this->cardRankEvaluator = new CardRankEvaluator();
     }
 
-    public function onPlayerAction(PlayerAction $event): void
+    public function play(HandContext $context): void
     {
-        // We dont use any player action on this phase
-    }
+        $players = $context->getPlayerCollection()->getCompetingPlayers();
+        $boardCardPile = $context->getBoardCards();
 
-    public function play(array &$players, Deck &$deck, ?ICardPile $boardCardPile): void
-    {
         $playerHandStrength = [];
         $highest = 0;
         foreach ($players as $player) {
@@ -57,5 +55,10 @@ class ShowdownPhase extends AbstractPhase
     {
         $instance = new self($data["logger"], $data["timeout"] ?? null);
         return $instance;
+    }
+
+    public function onPlayerAction(PlayerAction $event): void
+    {
+        // We dont use any player action on this phase
     }
 }

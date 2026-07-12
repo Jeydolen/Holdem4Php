@@ -5,8 +5,7 @@ namespace App\Game\Hand\Phase;
 use App\Event\PhaseState;
 use App\Event\PlayerAction;
 
-use App\Game\CardPile\Deck;
-use App\Game\CardPile\ICardPile;
+use App\Game\Hand\HandContext;
 
 use Psr\Log\LoggerInterface;
 
@@ -24,7 +23,7 @@ abstract class AbstractPhase implements IPhase, EventSubscriberInterface
         return [PlayerAction::class => "onPlayerAction"];
     }
 
-    abstract public function play(array &$players, Deck &$deck, ?ICardPile $boardCardPile): void;
+    abstract public function play(HandContext $context): void;
 
     abstract public function onPlayerAction(PlayerAction $event): void;
 
@@ -36,7 +35,7 @@ abstract class AbstractPhase implements IPhase, EventSubscriberInterface
 
     protected function endPhase(): void
     {
-        $this->logger->debug("Ending phase", context: ["calling_class" => get_called_class()]);
+        $this->logger->debug("Ending phase", context: ["calling_class" => \get_called_class()]);
         $this->dispatcher->dispatch(new PhaseState("next_phase"));
     }
 }
