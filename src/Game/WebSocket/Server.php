@@ -22,7 +22,7 @@ use App\Enum\DeckGenerationTypeEnum;
 
 use App\Event\PlayerAction;
 
-use App\Game\Player;
+use App\Game\Player\Player;
 use App\Game\Table\TableFactory;
 use App\Game\Table\TableRegistry;
 use App\Game\Hand\Phase\PhaseFactory;

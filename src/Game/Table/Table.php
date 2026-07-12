@@ -8,7 +8,7 @@ use App\Entity\Table as EntityTable;
 
 use App\Event\PhaseState;
 
-use App\Game\Player;
+use App\Game\Player\Player;
 use App\Game\Hand\PokerHand;
 use App\Game\Hand\Phase\IPhase;
 use App\Game\CardPile\DeckFactory;

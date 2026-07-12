@@ -1,6 +1,11 @@
 <?php
 
-namespace App\Game;
+namespace App\Game\Player;
+
+use RuntimeException;
+
+use DateTime;
+use DateTimeInterface;
 
 use App\Entity\User;
 use App\Event\PlayerAction;
@@ -10,8 +15,6 @@ use App\Game\CardPile\ICardPile;
 use App\Game\CardPile\PlayerHoleCards;
 use App\Game\WebSocket\ConnectionWrapper;
 
-use DateTime;
-use DateTimeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -29,7 +32,9 @@ class Player implements EventSubscriberInterface
      */
     private User $user;
 
-    private ICardPile $hole_cards;
+    private ICardPile $holeCards;
+
+    private ?int $betTotalAmount = null;
 
     public function __construct(
         User $user,
@@ -47,7 +52,8 @@ class Player implements EventSubscriberInterface
      */
     public function resetState()
     {
-        $this->hole_cards = new PlayerHoleCards(2, true);
+        $this->holeCards = new PlayerHoleCards(2, true);
+        $this->betTotalAmount = null;
     }
 
     public function getUserId(): string
@@ -62,7 +68,7 @@ class Player implements EventSubscriberInterface
 
     public function getHoleCards(): ICardPile
     {
-        return $this->hole_cards;
+        return $this->holeCards;
     }
 
     /**
@@ -77,7 +83,7 @@ class Player implements EventSubscriberInterface
 
     public function pushCard(Card $card): void
     {
-        $this->hole_cards->pushCard($card);
+        $this->holeCards->pushCard($card);
     }
 
     public function askBet(int $maxBettingAmount, array $legalActions, ?int $minBettingAmount = 0, ?DateTimeInterface $timeoutDate = null): void
@@ -97,7 +103,10 @@ class Player implements EventSubscriberInterface
      */
     public function sendCurrentState(): void
     {
-        $this->sendMessage(["cards" => $this->getHoleCards()->getCards()]);
+        $this->sendMessage([
+            "cards" => $this->getHoleCards()->getCards(),
+            "bet_total_amount" => $this->getBetTotalAmount()
+        ]);
     }
 
     public function onPlayerAction(PlayerAction $event): void
@@ -109,14 +118,32 @@ class Player implements EventSubscriberInterface
         $this->logger->info("Player action", ["event" => $event->getEventData(), "player" => $event->getPlayer()->getUserId()]);
     }
 
+    public function setBetTotalAmount(int $amount): void
+    {
+        if ($amount <= 0) {
+            throw new RuntimeException("Bet total amount can't be negative");
+        }
+
+        $this->betTotalAmount = $amount;
+    }
+
+    public function getBetTotalAmount(): ?int
+    {
+        return $this->betTotalAmount;
+    }
+
     public function __tostring(): string
     {
         $string = "UserID: " . $this->getUserId();
 
-        if (!empty($this->hole_cards->getCards())) {
+        if (!empty($this->holeCards->getCards())) {
             $string .= " Cards: [";
-            $string .= implode(",", array_map(fn(Card $card) => $card->__tostring(), $this->hole_cards->getCards()));
+            $string .= implode(",", array_map(fn(Card $card) => $card->__tostring(), $this->holeCards->getCards()));
             $string .= "]";
+        }
+
+        if (!empty($this->betTotalAmount)) {
+            $string .= " Bet total amount: " . $this->getBetTotalAmount();
         }
 
         return $string;

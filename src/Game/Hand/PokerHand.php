@@ -3,7 +3,7 @@ namespace App\Game\Hand;
 
 use App\Event\PhaseState;
 
-use App\Game\PlayerCollection;
+use App\Game\Player\PlayerCollection;
 use App\Game\CardPile\Deck;
 use App\Game\CardPile\BoardCards;
 
@@ -88,6 +88,14 @@ class PokerHand
 
     private function sendPokerHandEndSignal(): void
     {
+        // We have to distribute the pots to the competing players
+        $playerCollection = $this->handContext->getPlayerCollection();
+        $pots = $this->handContext->getBettingManager()->computePots($playerCollection->getAllPlayers(), $playerCollection->getFoldedPlayerIds());
+
+        foreach ($pots as $pot) {
+            $pot->getCompetingPlayers();
+        }
+
         $this->dispatcher->dispatch(new PhaseState("no_more_phases"));
     }
 }

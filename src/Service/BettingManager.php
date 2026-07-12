@@ -3,6 +3,10 @@
 namespace App\Service;
 
 use App\Event\PhaseState;
+
+use App\Game\Pot;
+use App\Game\Player\Player;
+
 use App\Enum\PlayerBettingActionEnum;
 use App\Exception\InvalidPlayerBettingActionException;
 

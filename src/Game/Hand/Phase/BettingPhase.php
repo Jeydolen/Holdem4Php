@@ -8,7 +8,7 @@ use DateTimeImmutable;
 use App\Event\PhaseState;
 use App\Event\PlayerAction;
 
-use App\Game\Player;
+use App\Game\Player\Player;
 use App\Game\Hand\HandContext;
 
 use App\Service\BettingManager;

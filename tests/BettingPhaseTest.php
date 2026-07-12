@@ -7,8 +7,8 @@ use App\Event\PlayerAction;
 
 use App\Enum\PlayerBettingActionEnum;
 
-use App\Game\Player;
-use App\Game\PlayerCollection;
+use App\Game\Player\Player;
+use App\Game\Player\PlayerCollection;
 
 use App\Game\CardPile\Deck;
 use App\Game\CardPile\BoardCards;
@@ -64,13 +64,22 @@ class BettingPhaseTest extends TestCase
 
     private function makeHandContext(array $players)
     {
-        return new HandContext(
+        $context = new HandContext(
             $this->deck,
             new BoardCards(5, true),
             new PlayerCollection($players),
             new BettingManager($this->dispatcher),
             new CardRankEvaluator()
         );
+
+        // We have to emulate Table comportement
+        $this->dispatcher->addListener(PhaseState::class, function (PhaseState $event) use ($context) {
+            if ($event->getAction() === "player_fold") {
+                $context->getPlayerCollection()->foldPlayer($event->getEventData()["player_id"]);
+            }
+        });
+
+        return $context;
     }
 
     private function makePlayer(string $id): Player&Stub

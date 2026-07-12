@@ -1,11 +1,10 @@
 <?php
 namespace App\Game\Hand;
 
-use App\Game\CardPile\BoardCards;
 use App\Game\CardPile\Deck;
+use App\Game\CardPile\BoardCards;
+use App\Game\Player\PlayerCollection;
 
-
-use App\Game\PlayerCollection;
 use App\Service\BettingManager;
 use App\Service\CardRank\CardRankEvaluator;
 

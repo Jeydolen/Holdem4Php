@@ -2,7 +2,7 @@
 
 namespace App\Event;
 
-use App\Game\Player;
+use App\Game\Player\Player;
 use Symfony\Contracts\EventDispatcher\Event;
 
 class PlayerAction extends Event
