@@ -8,6 +8,7 @@ use App\Game\Pot;
 use App\Game\Player\Player;
 
 use App\Enum\PlayerBettingActionEnum;
+
 use App\Exception\InvalidPlayerBettingActionException;
 
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -28,8 +29,10 @@ class BettingManager
 
     private int $minimalLegalBet = 0;
 
-    public function __construct(private EventDispatcher $dispatcher, private ?int $pot = 0)
-    {
+    public function __construct(
+        private EventDispatcher $dispatcher,
+        private ?int $pot = 0
+    ) {
     }
 
     public function getPotAmount(): int
@@ -123,5 +126,46 @@ class BettingManager
         $this->pot += $playerBet;
         $this->minimalLegalBet = $playerBet;
         $this->previousNotableAction = $playerAction;
+    }
+
+    /**
+     * Summary of computePots
+     * @param Player[] $players
+     * @param string[] $foldedPlayerIds User ids of folded players
+     * @return Pot[] 
+     */
+    public function computePots(array $players, array $foldedPlayerIds): array
+    {
+        $contributors = array_filter($players, fn(Player $p) => $p->getBetTotalAmount() > 0);
+
+        // No players did bet, no Pot to create
+        if (empty($contributors)) {
+            return [];
+        }
+
+        $thresholds = array_unique(array_map(fn(Player $p) => $p->getBetTotalAmount(), $contributors));
+        sort($thresholds);
+
+        $pots = [];
+        $previous = 0;
+        foreach ($thresholds as $threshold) {
+            $thresholdAmount = $threshold - $previous;
+
+            $potContributors = array_filter(
+                $contributors,
+                fn(Player $p) => $p->getBetTotalAmount() >= $threshold
+            );
+
+            $potAmount = $thresholdAmount * \count($potContributors);
+
+            // Only players who didn't fold can receive this pot
+            $eligiblePlayers = array_values(array_filter($potContributors, fn(Player $p) => !\in_array($p->getUserId(), $foldedPlayerIds)));
+
+            $pots[] = new Pot($potAmount, $eligiblePlayers);
+
+            $previous = $threshold;
+        }
+
+        return $pots;
     }
 }
