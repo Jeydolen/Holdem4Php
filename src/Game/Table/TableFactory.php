@@ -3,6 +3,7 @@
 namespace App\Game\Table;
 
 use App\DTO\DeckGenerationDTO;
+use App\Entity\Table as EntityTable;
 
 use Psr\Log\LoggerInterface;
 
@@ -14,14 +15,15 @@ class TableFactory
     {
     }
 
-    public function createTable(int $maxPlayers, array $phases, DeckGenerationDTO $deckGenerationDTO): Table
+    public function createTable(int $maxPlayers, array $phases, DeckGenerationDTO $deckGenerationDTO, EntityTable $table): Table
     {
         return new Table(
             $this->logger,
             new EventDispatcher(),
             $maxPlayers,
             $phases,
-            $deckGenerationDTO
+            $deckGenerationDTO,
+            $table
         );
     }
 }

@@ -7,12 +7,14 @@ use JsonException;
 
 use Psr\Log\LoggerInterface;
 
-
 use OpenSwoole\Table;
 use OpenSwoole\Timer;
 use OpenSwoole\WebSocket\Frame;
 use OpenSwoole\WebSocket\Server as WebSocketServer;
 
+use Doctrine\ORM\EntityManagerInterface;
+
+use App\Entity\Variant;
 
 use App\DTO\DeckGenerationDTO;
 
@@ -56,7 +58,8 @@ class Server
         private VariantRepository $variantRepository,
         private UserRepository $userRepository,
         private LoggerInterface $logger,
-        private TableRegistry $tableRegistry
+        private TableRegistry $tableRegistry,
+        private EntityManagerInterface $em,
     ) {
         $this->publicKey = AsymmetricPublicKey::importPem(file_get_contents($publicKeyPath));
         $this->phaseFactory = new PhaseFactory($this->logger);
@@ -107,6 +110,17 @@ class Server
     public function closeServer(): void
     {
         $this->logger->info("Received close instruction, exiting server....");
+
+        // Removing tables
+        $this->logger->info("Removing tables...");
+        foreach ($this->tableRegistry->getAllTables() as $game_table) {
+            $this->em->remove($game_table->getEntityTable());
+        }
+
+        $this->em->flush();
+
+        $this->logger->info("All tables from this instance removed successfully");
+
         $this->webSocketServer->shutdown();
     }
 
@@ -117,55 +131,68 @@ class Server
     public function loadTables(): int
     {
         $this->logger->info("Loading table rules");
-        $rules = $this->variantRepository->findAll();
-        $this->logger->info("Table rules count", ["rules_count" => \sizeof($rules)]);
+        $variants = $this->variantRepository->findAll();
+        $this->logger->info("Table rules count", ["rules_count" => \sizeof($variants)]);
 
-        foreach ($rules as $k => $rule) {
-            $this->logger->debug("Loading new table rule", ["rule_number" => $k]);
-
-            // Phases sorted by priority
-            $phases = $rule->getPhases();
-
-            $game_phases = [];
-            // Game phase construction
-            foreach ($phases as $phase) {
-                $this->logger->debug("Creating phase", ["phase" => $phase]);
-
-                $game_phase = $this->phaseFactory->create(
-                    $phase->getType(),
-                    $phase->getTimeout(),
-                    $phase->getAdditionnalProperties()
-                );
-
-                $this->logger->info("Game phase created");
-                $game_phases[] = $game_phase;
-            }
-
-            $deck_rules = new DeckGenerationDTO();
-            $deck_rules->cards = $rule->getCards();
-            $deck_rules->maxSize = \sizeof($deck_rules->cards);
-            $deck_rules->noDuplicate = false;
-            $deck_rules->generationType = DeckGenerationTypeEnum::MANUAL;
-
-            $this->logger->debug("Created deck rules for the table rule", ["deck_rules" => $deck_rules]);
-
-            $table_id = uniqid("table");
-            $this->tableRegistry->addTable(
-                $table_id,
-                $this->tableFactory->createTable(
-                    $rule->getMaxPlayers(),
-                    $game_phases,
-                    $deck_rules
-                )
-            );
-
-            $this->logger->info("Table created", ["table_id" => $table_id]);
+        foreach ($variants as $k => $variant) {
+            $this->logger->debug("Loading new variant", ["number" => $k]);
+            $this->createTable($variant);
         }
 
         $this->logger->info("Loaded all table rules");
 
-        return \sizeof($rules);
+        return \sizeof($variants);
     }
+
+    private function createTable(Variant $variant)
+    {
+        // Phases sorted by priority
+        $phases = $variant->getPhases();
+
+        $game_phases = [];
+        // Game phase construction
+        foreach ($phases as $phase) {
+            $this->logger->debug("Creating phase", ["phase" => $phase]);
+
+            $game_phase = $this->phaseFactory->create(
+                $phase->getType(),
+                $phase->getTimeout(),
+                $phase->getAdditionnalProperties()
+            );
+
+            $this->logger->info("Game phase created");
+            $game_phases[] = $game_phase;
+        }
+
+        $deck_rules = new DeckGenerationDTO();
+        $deck_rules->cards = $variant->getCards();
+        $deck_rules->maxSize = \sizeof($deck_rules->cards);
+        $deck_rules->noDuplicate = false;
+        $deck_rules->generationType = DeckGenerationTypeEnum::MANUAL;
+
+        $this->logger->debug("Created deck rules for the table rule", ["deck_rules" => $deck_rules]);
+
+
+        $table = new \App\Entity\Table();
+        $table->setVariant($variant);
+        $this->em->persist($table);
+
+        $table_id = uniqid("table");
+        $this->tableRegistry->addTable(
+            $table_id,
+            $this->tableFactory->createTable(
+                $variant->getMaxPlayers(),
+                $game_phases,
+                $deck_rules,
+                $table
+            )
+        );
+
+        $this->em->flush();
+
+        $this->logger->info("Table created", ["table_id" => $table_id]);
+    }
+
 
     private function onConnect(WebSocketServer $server, int $fd): void
     {

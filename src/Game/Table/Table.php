@@ -4,7 +4,10 @@ namespace App\Game\Table;
 
 use App\DTO\DeckGenerationDTO;
 
+use App\Entity\Table as EntityTable;
+
 use App\Event\PhaseState;
+
 use App\Game\Player;
 use App\Game\Hand\PokerHand;
 use App\Game\Hand\Phase\IPhase;
@@ -33,9 +36,15 @@ class Table implements EventSubscriberInterface
     private PokerHand $currentHand;
 
     public readonly int $maxPlayers;
+
+    /**
+     * @var IPhase[]
+     */
     public readonly array $phases;
 
     private DeckFactory $deckFactory;
+
+    private EntityTable $entityTable;
 
     /**
      * @param int $maxPlayers
@@ -46,10 +55,12 @@ class Table implements EventSubscriberInterface
         private EventDispatcher $dispatcher,
         int $maxPlayers,
         array $phases,
-        DeckGenerationDTO $deckGenerationDTO
+        DeckGenerationDTO $deckGenerationDTO,
+        EntityTable $entityTable
     ) {
         $this->maxPlayers = $maxPlayers;
         $this->phases = $phases;
+        $this->entityTable = $entityTable;
 
         // Table has the responsability to provide the event dispatcher to the phases 
         foreach ($phases as $phase) {
@@ -58,6 +69,11 @@ class Table implements EventSubscriberInterface
 
         $this->deckFactory = new DeckFactory($deckGenerationDTO);
         $this->dispatcher->addSubscriber($this);
+    }
+
+    public function getEntityTable(): EntityTable
+    {
+        return $this->entityTable;
     }
 
     public function dispatchEvent(Event $event)
