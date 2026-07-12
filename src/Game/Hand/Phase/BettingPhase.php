@@ -25,10 +25,7 @@ use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class BettingPhase extends AbstractPhase
 {
-    private array $players = [];
-
-    /** @var string[] Player IDs that have folded during this phase */
-    private array $foldedPlayerIds = [];
+    private HandContext $context;
 
     private ?int $timerId = null;
     private int $currentPlayerIndex = 0;
@@ -44,8 +41,6 @@ class BettingPhase extends AbstractPhase
     public function play(HandContext $context): void
     {
         $players = $context->getPlayerCollection()->getCompetingPlayers();
-        $this->bettingManager = $context->getBettingManager();
-
         $this->logger->info("Playing phase", ["phase" => (self::class), "max_betting_amount" => $this->maxBettingAmount]);
         if (\count($players) <= 1) {
             $this->logger->info("Not enough players to play the phase", ["phase" => (self::class)]);
@@ -54,9 +49,10 @@ class BettingPhase extends AbstractPhase
             return;
         }
 
-        $this->players = $players;
+        $this->context = $context;
+        $this->bettingManager = $context->getBettingManager();
 
-        $this->askPlayer($this->players[$this->currentPlayerIndex]);
+        $this->askPlayer($players[$this->currentPlayerIndex]);
     }
 
     private function askPlayer(Player $player): void
@@ -96,21 +92,19 @@ class BettingPhase extends AbstractPhase
         // Cancel the timer of the current player before moving on
         $this->cancelCurrentTimer();
 
-
-        $activePlayers = array_filter(
-            $this->players,
-            fn(Player $p) => !\in_array($p->getUserId(), $this->foldedPlayerIds)
-        );
-
+        $activePlayers = $this->context->getPlayerCollection()->getCompetingPlayers();
         if (\count($activePlayers) <= 1) {
             $this->logger->debug("Not enough players to continue betting");
             $this->endPhase();
             return;
         }
 
-        if (!empty($this->players[$this->currentPlayerIndex + 1])) {
+        // There might be a bug here
+        $players = $this->context->getPlayerCollection()->getAllPlayers();
+
+        if (!empty($players[$this->currentPlayerIndex + 1])) {
             $this->currentPlayerIndex += 1;
-            $this->askPlayer($this->players[$this->currentPlayerIndex]);
+            $this->askPlayer($players[$this->currentPlayerIndex]);
             return;
         }
 
@@ -132,17 +126,18 @@ class BettingPhase extends AbstractPhase
 
     public function onPlayerAction(PlayerAction $event): void
     {
+        $players = $this->context->getPlayerCollection()->getAllPlayers();
         $player = $event->getPlayer();
         $this->logger->debug(
             "Waiting for player {player} timer {timer_id} event player {event_player}",
             [
-                "player" => $this->players[$this->currentPlayerIndex] ?? null,
+                "player" => $players[$this->currentPlayerIndex] ?? null,
                 "timer_id" => $this->timerId,
                 "event_player" => $player,
             ]
         );
 
-        if ($player !== $this->players[$this->currentPlayerIndex]) {
+        if ($player !== $players[$this->currentPlayerIndex]) {
             return;
         }
 
@@ -164,10 +159,6 @@ class BettingPhase extends AbstractPhase
             "player_id" => $player->getUserId()
         ]);
 
-        if ($player_betting_action === PlayerBettingActionEnum::FOLD) {
-            $this->foldedPlayerIds[] = $player->getUserId();
-        }
-
         $this->bettingManager->play($player->getUserId(), $player_betting_action, $data["betting_amount"] ?? null);
         // Send player acknowledgement
         $player->sendMessage(["action" => "ack_bet"]);
@@ -175,8 +166,9 @@ class BettingPhase extends AbstractPhase
         // Ask players again
         if (\in_array($player_betting_action, BettingManager::NOTABLE_ACTIONS)) {
             $player->setBetTotalAmount($player->getBetTotalAmount() + $data["betting_amount"]);
+            $this->dispatcher->dispatch(new PhaseState("pot_amount", ["pot_amount" => $this->bettingManager->getPotAmount()]));
 
-            if (empty($this->players[$this->currentPlayerIndex + 1])) {
+            if (empty($players[$this->currentPlayerIndex + 1])) {
                 $this->logger->info("Player did a notable action, need to ask every player again");
                 // We set it to -1 because nextPlayer will increment it
                 $this->currentPlayerIndex = -1;
