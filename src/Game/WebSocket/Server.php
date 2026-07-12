@@ -95,8 +95,7 @@ class Server
         // Emitted when connection closed
         $server->on("close", function (WebSocketServer $server, int $fd) {
             $this->logger->info("Connection closing", ["connection" => $fd]);
-            $this->swooleTable->del($fd);
-            $server->push($fd, $this->serializer->serialize(["connected" => false], "json"));
+            $this->onClose(            $server, $fd);
         });
 
         $this->webSocketServer = $server;
@@ -176,6 +175,12 @@ class Server
             $server->disconnect($fd, reason: "Client did not authenticate");
         });
         $this->swooleTable->set($fd, ["auth_timer_id" => $timer_id]);
+    }
+
+    private function onClose(WebSocketServer $server, int $fd): void
+    {
+        $this->swooleTable->del($fd);
+        $server->push($fd, $this->serializer->serialize(["connected" => false], "json"));
     }
 
     private function onMessage(WebSocketServer $server, int $fd, mixed $data): void
