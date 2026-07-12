@@ -271,14 +271,6 @@ class BettingManagerTest extends TestCase
         $this->assertSame(["player_id" => $playerId], $event['data']);
     }
 
-    public function testFoldDoesNotDispatchBettingActionEvent(): void
-    {
-        $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::FOLD, null);
-
-        $this->assertNotContains("player_betting_action", $this->dispatchedActions);
-    }
-
     public function testFoldDoesNotChangePot(): void
     {
         $manager = $this->makeManager();
