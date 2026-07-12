@@ -95,7 +95,7 @@ class Server
         // Emitted when connection closed
         $server->on("close", function (WebSocketServer $server, int $fd) {
             $this->logger->info("Connection closing", ["connection" => $fd]);
-            $this->onClose(            $server, $fd);
+            $this->onClose($server, $fd);
         });
 
         $this->webSocketServer = $server;
