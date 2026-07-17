@@ -2,8 +2,11 @@
 
 namespace App\DTO;
 
-use App\DTO\Phase\PhaseDTO;
 use App\Enum\TableTypeEnum;
+use App\Enum\BettingTypeEnum;
+
+use App\DTO\Phase\PhaseDTO;
+
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\Valid;
 use Symfony\Component\Validator\Constraints\Positive;
@@ -28,4 +31,7 @@ class VariantDTO
     /** @var PhaseDTO[] */
     #[Valid()]
     public array $phases;
+
+    #[NotBlank()]
+    public BettingTypeEnum $bettingType;
 }
