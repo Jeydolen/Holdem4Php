@@ -19,7 +19,7 @@ services:
     App\:
         resource: '../src/'
         exclude:
-            - '../src/Game/Player.php'
+            - '../src/Game/Player/'
             - '../src/Game/Hand/Phase/'
             - '../src/Game/Table/Table.php'
 
