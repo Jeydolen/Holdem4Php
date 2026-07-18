@@ -6,6 +6,8 @@ use App\Repository\TableRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Attribute\SerializedName;
 
 #[ORM\Entity(repositoryClass: TableRepository::class)]
 #[ORM\Table(name: '`table`')]
@@ -16,6 +18,7 @@ class Table
     #[ORM\Column]
     private ?int $table_id = null;
 
+    #[Groups("show_table")]
     #[ORM\ManyToOne(inversedBy: 'tables')]
     #[ORM\JoinColumn(nullable: false, referencedColumnName: "variant_id")]
     private ?Variant $variant = null;
@@ -26,9 +29,11 @@ class Table
     #[ORM\OneToMany(targetEntity: TablePlayers::class, mappedBy: 'table')]
     private Collection $tablePlayers;
 
+    #[Groups("show_table")]
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $address = null;
 
+    #[Groups("show_table")]
     #[ORM\Column(length: 13)]
     private ?string $instance_table_id = null;
 
@@ -103,7 +108,9 @@ class Table
         return $this;
     }
 
-    public function getPlayerCount(): int
+    #[Groups("show_table")]
+    #[SerializedName("current_player_count")]
+    public function getCurrentPlayerCount(): int
     {
         return $this->tablePlayers->count();
     }

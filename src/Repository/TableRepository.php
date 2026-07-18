@@ -16,28 +16,19 @@ class TableRepository extends ServiceEntityRepository
         parent::__construct($registry, Table::class);
     }
 
-    //    /**
-    //     * @return Table[] Returns an array of Table objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('t')
-    //            ->andWhere('t.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('t.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * @return Table[] Returns an array of Table objects
+     */
+    public function findByVariantCriterias(array $criterias, int $limit): array
+    {
+        $qb = $this->createQueryBuilder('t')
+            ->innerJoin('t.variant', 'v');
 
-    //    public function findOneBySomeField($value): ?Table
-    //    {
-    //        return $this->createQueryBuilder('t')
-    //            ->andWhere('t.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        foreach ($criterias as $criteria_name => $criteria_value) {
+            $qb->andWhere("v.$criteria_name = :$criteria_name")
+                ->setParameter($criteria_name, $criteria_value);
+        }
+
+        return $qb->setMaxResults(10)->getQuery()->getResult();
+    }
 }
