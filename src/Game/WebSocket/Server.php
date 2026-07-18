@@ -136,7 +136,7 @@ class Server
 
         foreach ($variants as $k => $variant) {
             $this->logger->debug("Loading new variant", ["number" => $k]);
-            $this->createTable($variant);
+            $this->createTable($variant, gethostbyname(gethostname() . '.'));
         }
 
         $this->logger->info("Loaded all table rules");
@@ -144,7 +144,7 @@ class Server
         return \sizeof($variants);
     }
 
-    private function createTable(Variant $variant)
+    private function createTable(Variant $variant, ?string $address)
     {
         // Phases sorted by priority
         $phases = $variant->getPhases();
@@ -172,12 +172,14 @@ class Server
 
         $this->logger->debug("Created deck rules for the table rule", ["deck_rules" => $deck_rules]);
 
+        $table_id = uniqid();
 
         $table = new \App\Entity\Table();
         $table->setVariant($variant);
+        $table->setAddress($address . ":" . $this->webSocketServer->port);
+        $table->setInstanceTableId($table_id);
         $this->em->persist($table);
 
-        $table_id = uniqid("table");
         $this->tableRegistry->addTable(
             $table_id,
             $this->tableFactory->createTable(

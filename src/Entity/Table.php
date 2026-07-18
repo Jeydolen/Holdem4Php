@@ -26,6 +26,12 @@ class Table
     #[ORM\OneToMany(targetEntity: TablePlayers::class, mappedBy: 'table')]
     private Collection $tablePlayers;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $address = null;
+
+    #[ORM\Column(length: 13)]
+    private ?string $instance_table_id = null;
+
     public function __construct()
     {
         $this->tablePlayers = new ArrayCollection();
@@ -81,6 +87,35 @@ class Table
                 $tablePlayer->setTable(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getAddress(): ?string
+    {
+        return $this->address;
+    }
+
+    public function setAddress(?string $address): static
+    {
+        $this->address = $address;
+
+        return $this;
+    }
+
+    public function getPlayerCount(): int
+    {
+        return $this->tablePlayers->count();
+    }
+
+    public function getInstanceTableId(): ?string
+    {
+        return $this->instance_table_id;
+    }
+
+    public function setInstanceTableId(string $instance_table_id): static
+    {
+        $this->instance_table_id = $instance_table_id;
 
         return $this;
     }
