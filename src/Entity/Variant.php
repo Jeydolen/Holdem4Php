@@ -48,6 +48,10 @@ class Variant
     #[ORM\OneToMany(targetEntity: Table::class, mappedBy: 'variant')]
     private Collection $tables;
 
+    #[Groups("show_variant")]
+    #[ORM\Column(length: 255)]
+    private ?string $betting_type = null;
+
     public function __construct()
     {
         $this->variantCards = new ArrayCollection();
@@ -195,6 +199,18 @@ class Variant
                 $table->setVariant(null);
             }
         }
+
+        return $this;
+    }
+
+    public function getBettingType(): ?string
+    {
+        return $this->betting_type;
+    }
+
+    public function setBettingType(string $betting_type): static
+    {
+        $this->betting_type = $betting_type;
 
         return $this;
     }

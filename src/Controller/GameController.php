@@ -41,6 +41,7 @@ final class GameController extends AbstractController
         $variant = new Variant();
         $variant->setMaxPlayers($variantDTO->maxPlayers);
         $variant->setTableType($variantDTO->tableType->value);
+        $variant->setBettingType($variantDTO->bettingType->value);
         $variant->setName($variantDTO->name);
 
         $this->em->persist($variant);
