@@ -25,8 +25,13 @@ class TableRepository extends ServiceEntityRepository
             ->innerJoin('t.variant', 'v');
 
         foreach ($criterias as $criteria_name => $criteria_value) {
-            $qb->andWhere("v.$criteria_name = :$criteria_name")
-                ->setParameter($criteria_name, $criteria_value);
+            if ($criteria_name === "max_players") {
+                $qb->andWhere("v.$criteria_name <= :$criteria_name");
+            } else {
+                $qb->andWhere("v.$criteria_name = :$criteria_name");
+            }
+
+            $qb->setParameter($criteria_name, $criteria_value);
         }
 
         return $qb->setMaxResults(10)->getQuery()->getResult();
