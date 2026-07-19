@@ -2,8 +2,7 @@
 
 namespace App\Game\Table\Exception;
 
-use Exception;
 
-class TableFullException extends Exception
+class TableFullException extends TableException
 {
 }
