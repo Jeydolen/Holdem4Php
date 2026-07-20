@@ -56,6 +56,11 @@ class Player implements EventSubscriberInterface
         $this->betTotalAmount = null;
     }
 
+    public function getUser(): User
+    {
+        return $this->user;
+    }
+
     public function getUserId(): string
     {
         return $this->user->getUserId();
