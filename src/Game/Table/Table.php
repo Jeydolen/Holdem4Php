@@ -214,6 +214,7 @@ class Table implements EventSubscriberInterface
         if ($this->tableState === TableStateEnum::WAITING_FOR_PLAYERS && $this->canStart()) {
             $this->updateTableState(TableStateEnum::STARTING);
             $this->createStartTimer();
+            return;
         }
 
         // Unfortunately, a player disconnected while the game is starting
@@ -221,12 +222,14 @@ class Table implements EventSubscriberInterface
             // Go back to WAITING state
             Timer::clear($this->startingTimerId);
             $this->updateTableState(TableStateEnum::WAITING_FOR_PLAYERS);
+            return;
         }
 
         // Table is in starting state and we still have enough players, we can play
         if ($this->tableState === TableStateEnum::STARTING && $this->canStart()) {
             $this->updateTableState(TableStateEnum::IN_PROGRESS);
             $this->start();
+            return;
         }
     }
 
@@ -266,6 +269,8 @@ class Table implements EventSubscriberInterface
             // Hand is finished, if it is a CASH_GAME we can stay in waiting_for_player state
             if ($this->entityTable->getVariant()->getTableType() === TableTypeEnum::CASH_GAME->value) {
                 $this->updateTableState(TableStateEnum::WAITING_FOR_PLAYERS);
+                // If we don't evaluate status, nothing happens until a player join / quit
+                $this->evaluateTableStatus();
             } else {
                 $this->updateTableState(TableStateEnum::FINISHED);
             }
