@@ -121,6 +121,7 @@ class Server
             $this->em->beginTransaction();
             foreach ($this->tableRegistry->getAllTables() as $game_table) {
                 $table_id = $game_table->getEntityTable()->getTableId();
+$game_table->closeTable();
                 // Using regular sql to prevent desync (like a manual db update)
                 $this->em->getConnection()->executeStatement("DELETE FROM table_players WHERE table_id = :table_id", ["table_id" => $table_id]);
                 $this->em->getConnection()->executeStatement('DELETE FROM "table" WHERE table_id = :table_id', ["table_id" => $table_id]);

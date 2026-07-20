@@ -253,6 +253,20 @@ class Table implements EventSubscriberInterface
         $this->currentHand->playPhase();
     }
 
+    public function closeTable(): void
+    {
+        $this->logger->info("Closing table...");
+        // Telling every player that table is closing
+        foreach ($this->players as $p) {
+            $p->sendMessage(["action" => "table_close"]);
+        }
+
+        if (!empty($this->startingTimerId)) {
+            Timer::clear($this->startingTimerId);
+            $this->tableState = TableStateEnum::FINISHED;
+        }
+    }
+
     public function nextPhase()
     {
         $this->logger->info("Next phase");
