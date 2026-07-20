@@ -140,6 +140,7 @@ class Server
             $this->createTable($variant, gethostbyname(gethostname() . '.'));
         }
 
+$this->em->flush();
         $this->logger->info("Loaded all table rules");
 
         return \sizeof($variants);
@@ -190,8 +191,6 @@ class Server
                 $table
             )
         );
-
-        $this->em->flush();
 
         $this->logger->info("Table created", ["table_id" => $table_id]);
     }
