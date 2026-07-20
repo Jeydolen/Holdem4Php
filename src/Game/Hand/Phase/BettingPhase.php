@@ -66,7 +66,7 @@ class BettingPhase extends AbstractPhase
                 $this->logger->info("Player did not bet, folding player", ["player_id" => $player->getUserId()]);
                 $this->dispatcher->dispatch(new PhaseState("player_fold", ["player_id" => $player->getUserId()]));
                 $this->nextPlayer();
-            }, persistent: false);
+            });
             $this->logger->info("Timeout timer added", ["timerId" => $this->timerId, "timeout" => $this->timeout]);
         }
 
