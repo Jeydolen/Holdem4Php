@@ -26,7 +26,7 @@ class Table
     /**
      * @var Collection<int, TablePlayers>
      */
-    #[ORM\OneToMany(targetEntity: TablePlayers::class, mappedBy: 'table')]
+    #[ORM\OneToMany(targetEntity: TablePlayers::class, mappedBy: 'table', cascade: ["remove", "persist"], orphanRemoval: true)]
     private Collection $tablePlayers;
 
     #[Groups("show_table")]

@@ -7,23 +7,26 @@ use App\Entity\Table as EntityTable;
 
 use Psr\Log\LoggerInterface;
 
+use Doctrine\ORM\EntityManagerInterface;
+
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class TableFactory
 {
-    public function __construct(private LoggerInterface $logger, )
+    public function __construct(private LoggerInterface $logger, private EntityManagerInterface $em)
     {
     }
 
     public function createTable(int $maxPlayers, array $phases, DeckGenerationDTO $deckGenerationDTO, EntityTable $table): Table
     {
         return new Table(
-            $this->logger,
-            new EventDispatcher(),
             $maxPlayers,
             $phases,
             $deckGenerationDTO,
-            $table
+            $this->logger,
+            new EventDispatcher(),
+            $table,
+            $this->em
         );
     }
 }

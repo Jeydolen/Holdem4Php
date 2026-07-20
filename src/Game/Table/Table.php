@@ -4,6 +4,7 @@ namespace App\Game\Table;
 
 use App\DTO\DeckGenerationDTO;
 
+use App\Entity\TablePlayers;
 use App\Entity\Table as EntityTable;
 
 use App\Enum\TableStateEnum;
@@ -23,6 +24,8 @@ use App\Game\Table\Exception\PlayerAlreadyInGameException;
 use OpenSwoole\Timer;
 
 use Psr\Log\LoggerInterface;
+
+use Doctrine\ORM\EntityManagerInterface;
 
 use Symfony\Contracts\EventDispatcher\Event;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -50,8 +53,6 @@ class Table implements EventSubscriberInterface
 
     private DeckFactory $deckFactory;
 
-    private EntityTable $entityTable;
-
     private TableStateEnum $tableState;
 
     private int $startingTimerId;
@@ -61,16 +62,16 @@ class Table implements EventSubscriberInterface
      * @param IPhase[] $phases
      */
     public function __construct(
-        private LoggerInterface $logger,
-        private EventDispatcher $dispatcher,
         int $maxPlayers,
         array $phases,
         DeckGenerationDTO $deckGenerationDTO,
-        EntityTable $entityTable
+        private LoggerInterface $logger,
+        private EventDispatcher $dispatcher,
+        private EntityTable $entityTable,
+        private EntityManagerInterface $em
     ) {
         $this->maxPlayers = $maxPlayers;
         $this->phases = $phases;
-        $this->entityTable = $entityTable;
 
         $this->updateTableState(TableStateEnum::WAITING_FOR_PLAYERS);
 
@@ -85,7 +86,7 @@ class Table implements EventSubscriberInterface
 
     private function updateTableState(TableStateEnum $newTableState): void
     {
-        $this->logger->info("Updating table state", ["old_table_state" => $this->tableState ?? null, "new_table_state" => $newTableState]);
+        $this->logger->info("Updating table state", ["old_table_state" => $this->tableState?->name ?? null, "new_table_state" => $newTableState->name]);
         $this->tableState = $newTableState;
     }
 
@@ -142,6 +143,13 @@ class Table implements EventSubscriberInterface
         $this->broadcastJson(["table_state" => "new_player", "player_id" => $player->getUserId(), "player_count" => \sizeof($this->players)]);
 
         $this->evaluateTableStatus();
+
+        $table_player = new TablePlayers();
+        $table_player->setTable($this->getEntityTable());
+        $table_player->setUser($player->getUser());
+        $table_player->setAmount(0);
+        $this->entityTable->addTablePlayer($table_player);
+        $this->em->flush();
     }
 
     /**
@@ -156,18 +164,22 @@ class Table implements EventSubscriberInterface
         $this->logger->info("Player removed", ["player_id" => $player->getUserId(), "player_count" => \sizeof($this->players)]);
 
         $event_message = ["table_state" => "remove_player", "player_id" => $player->getUserId(), "player_count" => \sizeof($this->players)];
-
-        if (!$reconnect) {
-            $player->sendMessage($event_message);
-            $this->broadcastJson($event_message);
-
-            $this->evaluateTableStatus();
-
-            // If the game is not in a waiting state, the player won't be refunded his table bankroll
-        } else {
+        if ($reconnect) {
             // This works to disconnect the previous player without disconnecting the new one
             $player->sendMessage($event_message);
+            return;
         }
+
+        $player->sendMessage($event_message);
+        $this->broadcastJson($event_message);
+
+        $this->evaluateTableStatus();
+
+        // If the game is not in a waiting state, the player won't be refunded his table bankroll
+
+        $table_player = $this->entityTable->getTablePlayers()->findFirst(fn($k, $v) => $v->getUser()->getUserId()->toString() === $player->getUserId());
+        $this->entityTable->removeTablePlayer($table_player);
+        $this->em->flush();
     }
 
     public function getPlayer(string $userId): ?Player
