@@ -60,7 +60,6 @@ class PasetoAuthenticator extends AbstractAuthenticator
                 ->addRule(new IdentifiedBy("access-token"))
                 ->parse($token);
         } catch (PasetoException $ex) {
-            dd($ex, $token);
             $this->logger->info("Invalid token", ["token" => $token, "exception" => $ex]);
             throw new BadCredentialsException();
         }
