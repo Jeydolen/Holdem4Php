@@ -105,7 +105,7 @@ class BettingManager
         $this->validatePlayerAction($playerAction, $playerBet);
 
         // Advertising others what the player did
-        $this->dispatcher->dispatch(new PhaseState("player_betting_action", ["player_id" => $playerId, "action" => $playerAction]));
+        $this->dispatcher->dispatch(new PhaseState("player_betting_action", ["player_id" => $playerId, "action" => $playerAction, "betting_amount" => $playerBet]));
 
         if ($playerAction === PlayerBettingActionEnum::FOLD) {
             $this->dispatcher->dispatch(new PhaseState("player_fold", ["player_id" => $playerId]));
