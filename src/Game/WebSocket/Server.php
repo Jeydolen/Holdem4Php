@@ -111,17 +111,18 @@ class Server
     {
         $this->logger->info("Received close instruction, exiting server....");
 
+        $this->logger->info("Closing websocket server...");
+        $result = $this->webSocketServer->shutdown();
+        $this->logger->info("Websocket server closed", ["result" => $result]);
+
         // Removing tables
         $this->logger->info("Removing tables...");
         foreach ($this->tableRegistry->getAllTables() as $game_table) {
             $this->em->remove($game_table->getEntityTable());
         }
-
         $this->em->flush();
 
         $this->logger->info("All tables from this instance removed successfully");
-
-        $this->webSocketServer->shutdown();
     }
 
     /**
@@ -201,7 +202,11 @@ class Server
         $server->push($fd, $this->serializer->serialize(["connected" => true, "action" => "need_auth"], "json"));
         $timer_id = Timer::after(10 * 1000, function () use ($server, $fd) {
             $this->logger->info("Client did not authenticate, closing connection...");
-            $server->disconnect($fd, reason: "Client did not authenticate");
+
+            // If client is already disconnected, do nothing
+            if ($server->exists($fd)) {
+                $server->disconnect($fd, reason: "Client did not authenticate");
+            }
         });
         $this->swooleTable->set($fd, ["auth_timer_id" => $timer_id]);
     }
@@ -209,7 +214,6 @@ class Server
     private function onClose(WebSocketServer $server, int $fd): void
     {
         $this->swooleTable->del($fd);
-        $server->push($fd, $this->serializer->serialize(["connected" => false], "json"));
     }
 
     private function onMessage(WebSocketServer $server, int $fd, mixed $data): void
@@ -219,6 +223,10 @@ class Server
                 $json = json_decode($data, associative: true, flags: JSON_THROW_ON_ERROR);
             } catch (JsonException $e) {
                 throw new Exception("Malformed data sent, please use valid JSON !", 0, $e);
+            }
+
+            if (empty($json) || !is_array($json)) {
+                throw new Exception("Malformed data sent, please use valid JSON !", 0);
             }
 
             if (empty($json["action"])) {
@@ -241,7 +249,7 @@ class Server
             $this->handleActions($connection, $json["action"], $json);
         } catch (Exception $e) {
             $this->logger->error($e);
-            $connection->sendJson(["error" => $e->getMessage(), "error_type" => \get_class($e)]);
+            $server->push($fd, $this->serializer->serialize(["error" => $e->getMessage(), "error_type" => \get_class($e)], "json"));
         }
     }
 
@@ -280,57 +288,54 @@ class Server
             throw new BadCredentialsException("User is not authenticated");
         }
 
-        // TODO: Make a real search
-        if ($action === "listTables") {
-            $connection->sendJson(["tables" => $this->tableRegistry->getAllTables()]);
+        if (!\in_array($action, ["playerJoin", "playerQuit", "startGame", "playerGetState", "playerAction"])) {
+            throw new Exception("Invalid action");
+        }
+
+        // TODO: Change for proper DTO
+        $table_id = $data["table_id"] ?? null;
+        if (empty($table_id)) {
+            throw new Exception("Empty table id");
+        }
+
+        $table = $this->tableRegistry->getTable($table_id);
+        if (empty($table)) {
+            throw new Exception("Table does not exist");
+        }
+
+        // TODO: Use real rules for game start
+        if ($action === "startGame") {
+            $table->start();
+            $connection->send(json_encode(["table_started" => true]));
             return;
         }
 
-        if (\in_array($action, ["playerJoin", "playerQuit", "startGame", "playerGetState", "playerAction"])) {
-            // TODO: Change for proper DTO
-            $table_id = $data["table_id"] ?? null;
-            if (empty($table_id)) {
-                throw new Exception("Empty table id");
+        if ($action === "playerJoin" || $action === "playerQuit") {
+            $player = new Player($connection->getUser(), $connection, $this->logger);
+
+            if ($action === "playerJoin") {
+                $table->addPlayer($player);
+            } else if ($action === "playerQuit") {
+                $table->removePlayer($player, false);
             }
 
-            $table = $this->tableRegistry->getTable($table_id);
-            if (empty($table)) {
-                throw new Exception("Table does not exist");
-            }
-
-            // TODO: Use real rules for game start
-            if ($action === "startGame") {
-                $table->start();
-                $connection->send(json_encode(["table_started" => true]));
-                return;
-            }
-
-            if ($action === "playerJoin" || $action === "playerQuit") {
-                $player = new Player($connection->getUser(), $connection, $this->logger);
-
-                if ($action === "playerJoin") {
-                    $table->addPlayer($player);
-                } else if ($action === "playerQuit") {
-                    $table->removePlayer($player, false);
-                }
-
-                return;
-            }
-
-            $player = $table->getPlayer($connection->getUser()->getUserId());
-            if (empty($player)) {
-                throw new Exception("Player not found");
-            }
-
-            if ($action === "playerGetState") {
-                $player->sendCurrentState();
-                return;
-            }
-
-            if ($action === "playerAction") {
-                $table->dispatchEvent(new PlayerAction($player, $data));
-                return;
-            }
+            return;
         }
+
+        $player = $table->getPlayer($connection->getUser()->getUserId());
+        if (empty($player)) {
+            throw new Exception("Player not found");
+        }
+
+        if ($action === "playerGetState") {
+            $player->sendCurrentState();
+            return;
+        }
+
+        if ($action === "playerAction") {
+            $table->dispatchEvent(new PlayerAction($player, $data));
+            return;
+        }
+
     }
 }
