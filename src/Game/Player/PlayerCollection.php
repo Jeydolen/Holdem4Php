@@ -26,6 +26,9 @@ class PlayerCollection
         $this->players = $players;
     }
 
+    /**
+     * @return Player[]
+     */
     public function getCompetingPlayers(): array
     {
         $competing_players = array_values(array_filter($this->players, fn(Player $player) => !\in_array($player->getUserId(), $this->foldedPlayerIds)));
