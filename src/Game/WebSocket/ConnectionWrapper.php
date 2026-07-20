@@ -24,6 +24,10 @@ class ConnectionWrapper
 
     public function send(mixed $sendBuffer): bool|null
     {
+        if (!$this->server->exists($this->fd)) {
+            return null;
+        }
+
         return $this->server->push($this->fd, $sendBuffer);
     }
 

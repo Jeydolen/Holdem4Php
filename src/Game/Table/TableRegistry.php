@@ -29,6 +29,9 @@ class TableRegistry
         return $this->tables[$key] ?? null;
     }
 
+    /**
+     * @return Table[]
+     */
     public function getAllTables(): array
     {
         return $this->tables;

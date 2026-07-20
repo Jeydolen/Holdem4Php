@@ -63,7 +63,7 @@ class Server
     ) {
         $this->publicKey = AsymmetricPublicKey::importPem(file_get_contents($publicKeyPath));
         $this->phaseFactory = new PhaseFactory($this->logger);
-        $this->tableFactory = new TableFactory($this->logger);
+        $this->tableFactory = new TableFactory($this->logger, $em);
 
         $this->swooleTable = new Table(1024);
         $this->swooleTable->column("auth_timer_id", Table::TYPE_INT);
@@ -117,10 +117,20 @@ class Server
 
         // Removing tables
         $this->logger->info("Removing tables...");
-        foreach ($this->tableRegistry->getAllTables() as $game_table) {
-            $this->em->remove($game_table->getEntityTable());
+        try {
+            $this->em->beginTransaction();
+            foreach ($this->tableRegistry->getAllTables() as $game_table) {
+                $table_id = $game_table->getEntityTable()->getTableId();
+                // Using regular sql to prevent desync (like a manual db update)
+                $this->em->getConnection()->executeStatement("DELETE FROM table_players WHERE table_id = :table_id", ["table_id" => $table_id]);
+                $this->em->getConnection()->executeStatement('DELETE FROM "table" WHERE table_id = :table_id', ["table_id" => $table_id]);
+            }
+
+            $this->em->commit();
+            $this->em->flush();
+        } catch (Exception $e) {
+            $this->logger->error("Error while deleting tables", ["exception" => $e]);
         }
-        $this->em->flush();
 
         $this->logger->info("All tables from this instance removed successfully");
     }
@@ -140,7 +150,7 @@ class Server
             $this->createTable($variant, gethostbyname(gethostname() . '.'));
         }
 
-$this->em->flush();
+        $this->em->flush();
         $this->logger->info("Loaded all table rules");
 
         return \sizeof($variants);
