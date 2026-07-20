@@ -52,6 +52,12 @@ class Variant
     #[ORM\Column(length: 255)]
     private ?string $betting_type = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?int $starting_timer = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?int $min_player_threshold = null;
+
     public function __construct()
     {
         $this->variantCards = new ArrayCollection();
@@ -211,6 +217,30 @@ class Variant
     public function setBettingType(string $betting_type): static
     {
         $this->betting_type = $betting_type;
+
+        return $this;
+    }
+
+    public function getStartingTimer(): ?int
+    {
+        return $this->starting_timer;
+    }
+
+    public function setStartingTimer(?int $starting_timer): static
+    {
+        $this->starting_timer = $starting_timer;
+
+        return $this;
+    }
+
+    public function getMinPlayerThreshold(): ?int
+    {
+        return $this->min_player_threshold;
+    }
+
+    public function setMinPlayerThreshold(?int $min_player_threshold): static
+    {
+        $this->min_player_threshold = $min_player_threshold;
 
         return $this;
     }

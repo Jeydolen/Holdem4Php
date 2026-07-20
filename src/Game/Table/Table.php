@@ -6,6 +6,9 @@ use App\DTO\DeckGenerationDTO;
 
 use App\Entity\Table as EntityTable;
 
+use App\Enum\TableStateEnum;
+use App\Enum\TableTypeEnum;
+
 use App\Event\PhaseState;
 
 use App\Game\Player\Player;
@@ -13,8 +16,11 @@ use App\Game\Hand\PokerHand;
 use App\Game\Hand\Phase\IPhase;
 use App\Game\CardPile\DeckFactory;
 
+use App\Game\Table\Exception\TableException;
 use App\Game\Table\Exception\TableFullException;
 use App\Game\Table\Exception\PlayerAlreadyInGameException;
+
+use OpenSwoole\Timer;
 
 use Psr\Log\LoggerInterface;
 
@@ -46,6 +52,10 @@ class Table implements EventSubscriberInterface
 
     private EntityTable $entityTable;
 
+    private TableStateEnum $tableState;
+
+    private int $startingTimerId;
+
     /**
      * @param int $maxPlayers
      * @param IPhase[] $phases
@@ -62,6 +72,8 @@ class Table implements EventSubscriberInterface
         $this->phases = $phases;
         $this->entityTable = $entityTable;
 
+        $this->updateTableState(TableStateEnum::WAITING_FOR_PLAYERS);
+
         // Table has the responsability to provide the event dispatcher to the phases 
         foreach ($phases as $phase) {
             $phase->withEventDispatcher($dispatcher);
@@ -69,6 +81,12 @@ class Table implements EventSubscriberInterface
 
         $this->deckFactory = new DeckFactory($deckGenerationDTO);
         $this->dispatcher->addSubscriber($this);
+    }
+
+    private function updateTableState(TableStateEnum $newTableState): void
+    {
+        $this->logger->info("Updating table state", ["old_table_state" => $this->tableState ?? null, "new_table_state" => $newTableState]);
+        $this->tableState = $newTableState;
     }
 
     public function getEntityTable(): EntityTable
@@ -111,6 +129,10 @@ class Table implements EventSubscriberInterface
             throw new TableFullException();
         }
 
+        if (\in_array($this->tableState, [TableStateEnum::IN_PROGRESS, TableStateEnum::FINISHED])) {
+            throw new TableException("Game is already running");
+        }
+
         // TODO: Different condition depending on table type (tournament, cash game, ...)
 
         $this->logger->info("Player joined", ["player_id" => $player->getUserId()]);
@@ -118,6 +140,8 @@ class Table implements EventSubscriberInterface
         $this->dispatcher->addSubscriber($player);
 
         $this->broadcastJson(["table_state" => "new_player", "player_id" => $player->getUserId(), "player_count" => \sizeof($this->players)]);
+
+        $this->evaluateTableStatus();
     }
 
     /**
@@ -136,6 +160,10 @@ class Table implements EventSubscriberInterface
         if (!$reconnect) {
             $player->sendMessage($event_message);
             $this->broadcastJson($event_message);
+
+            $this->evaluateTableStatus();
+
+            // If the game is not in a waiting state, the player won't be refunded his table bankroll
         } else {
             // This works to disconnect the previous player without disconnecting the new one
             $player->sendMessage($event_message);
@@ -161,6 +189,47 @@ class Table implements EventSubscriberInterface
         $this->broadcastJson(["table_state" => "new_hand"]);
     }
 
+    private function createStartTimer()
+    {
+        $this->startingTimerId = Timer::after(($this->entityTable->getVariant()->getStartingTimer() ?? 5) * 1000, function () {
+            $this->evaluateTableStatus();
+        });
+    }
+
+    private function evaluateTableStatus(): void
+    {
+        // Table state changes depending on game mode
+        if ($this->tableState === TableStateEnum::WAITING_FOR_PLAYERS && $this->canStart()) {
+            $this->updateTableState(TableStateEnum::STARTING);
+            $this->createStartTimer();
+        }
+
+        // Unfortunately, a player disconnected while the game is starting
+        if ($this->tableState === TableStateEnum::STARTING && !$this->canStart()) {
+            // Go back to WAITING state
+            Timer::clear($this->startingTimerId);
+            $this->updateTableState(TableStateEnum::WAITING_FOR_PLAYERS);
+        }
+
+        // Table is in starting state and we still have enough players, we can play
+        if ($this->tableState === TableStateEnum::STARTING && $this->canStart()) {
+            $this->updateTableState(TableStateEnum::IN_PROGRESS);
+            $this->start();
+        }
+    }
+
+    public function canStart(): bool
+    {
+        $canStart = \count($this->players) >= ($this->entityTable->getVariant()->getMinPlayerThreshold() ?? 2);
+        $this->logger->info("Evaluating if game can start", [
+            "can_start" => $canStart,
+            "threshold" => $this->entityTable->getVariant()->getMinPlayerThreshold() ?? 2,
+            "player_count" => \count($this->players)
+        ]);
+
+        return $canStart;
+    }
+
     public function start()
     {
         $this->logger->info("Starting new hand");
@@ -181,6 +250,13 @@ class Table implements EventSubscriberInterface
         if ($event->getAction() === "no_more_phases") {
             $this->logger->info("No more phases in this hand. Waiting for next hand...");
             $this->broadcastJson(["table_state" => "table_update", "action" => $event->getAction()]);
+
+            // Hand is finished, if it is a CASH_GAME we can stay in waiting_for_player state
+            if ($this->entityTable->getVariant()->getTableType() === TableTypeEnum::CASH_GAME->value) {
+                $this->updateTableState(TableStateEnum::WAITING_FOR_PLAYERS);
+            } else {
+                $this->updateTableState(TableStateEnum::FINISHED);
+            }
             return;
         }
 
