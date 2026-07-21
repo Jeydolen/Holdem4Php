@@ -2,29 +2,29 @@
 
 namespace App\Controller;
 
-use App\Repository\UserRepository;
+use Exception;
 use ReflectionClass;
 use ReflectionProperty;
 
 use App\DTO\VariantDTO;
 use App\DTO\Phase\PhaseDTO;
 
-use App\Entity\User;
 use App\Entity\Card;
 use App\Entity\Phase;
 use App\Entity\Bankroll;
 use App\Entity\Variant;
 use App\Entity\VariantCards;
 use App\Entity\VariantPhases;
+use App\Entity\VariantStakes;
+
+use App\Repository\UserRepository;
 
 use App\Game\CardPile\DeckFactory;
 
 use Doctrine\ORM\EntityManagerInterface;
 
-use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
@@ -38,13 +38,23 @@ final class GameController extends AbstractController
     #[Route("/create_variant", methods: ["POST"])]
     public function createVariant(#[MapRequestPayload()] VariantDTO $variantDTO): JsonResponse
     {
+        if ($variantDTO->minBuyIn > $variantDTO->maxBuyIn) {
+            throw new Exception("Minimum buy in can't exceed maximum buy in");
+        }
+
         $variant = new Variant();
         $variant->setMaxPlayers($variantDTO->maxPlayers);
         $variant->setTableType($variantDTO->tableType->value);
         $variant->setBettingType($variantDTO->bettingType->value);
         $variant->setName($variantDTO->name);
-
         $this->em->persist($variant);
+
+        $variant_stake = new VariantStakes();
+        $variant_stake->setMinBuyIn($variantDTO->minBuyIn);
+        $variant_stake->setMaxBuyIn($variantDTO->maxBuyIn);
+        $variant_stake->setVariant($variant);
+        $this->em->persist($variant_stake);
+
         foreach ($variantDTO->phases as $phaseDTO) {
             $phase = new Phase();
             $phase->setPriority($phaseDTO->priority);
@@ -105,7 +115,14 @@ final class GameController extends AbstractController
     public function getAllVariants(): JsonResponse
     {
         $variants = $this->em->getRepository(Variant::class)->findAll();
-        return $this->json(["variants" => $variants], context: ["groups" => ["show_variant", "show_phase", "show_card"]]);
+        return $this->json(["variants" => $variants], context: [
+            "groups" => [
+                "show_variant",
+                "show_phase",
+                "show_stake",
+                "show_card"
+            ]
+        ]);
     }
 
 

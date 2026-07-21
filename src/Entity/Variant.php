@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
+use Symfony\Component\Serializer\Attribute\SerializedName;
 
 #[Groups("show_extended_variant")]
 #[ORM\Entity(repositoryClass: VariantRepository::class)]
@@ -52,17 +53,24 @@ class Variant
     #[ORM\Column(length: 255)]
     private ?string $betting_type = null;
 
-    #[ORM\Column(nullable: true)]
+    #[ORM\Column(nullable: true, options: ["default" => 30])]
     private ?int $starting_timer = null;
 
     #[ORM\Column(nullable: true)]
     private ?int $min_player_threshold = null;
+
+    /**
+     * @var Collection<int, VariantStakes>
+     */
+    #[ORM\OneToMany(targetEntity: VariantStakes::class, mappedBy: 'variant', orphanRemoval: true)]
+    private Collection $variantStakes;
 
     public function __construct()
     {
         $this->variantCards = new ArrayCollection();
         $this->variantPhases = new ArrayCollection();
         $this->tables = new ArrayCollection();
+        $this->variantStakes = new ArrayCollection();
     }
 
     public function getVariantId(): ?int
@@ -241,6 +249,38 @@ class Variant
     public function setMinPlayerThreshold(?int $min_player_threshold): static
     {
         $this->min_player_threshold = $min_player_threshold;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, VariantStakes>
+     */
+    #[Groups("show_stake")]
+    #[SerializedName("stakes")]
+    public function getVariantStakes(): Collection
+    {
+        return $this->variantStakes;
+    }
+
+    public function addVariantStake(VariantStakes $variantStake): static
+    {
+        if (!$this->variantStakes->contains($variantStake)) {
+            $this->variantStakes->add($variantStake);
+            $variantStake->setVariant($this);
+        }
+
+        return $this;
+    }
+
+    public function removeVariantStake(VariantStakes $variantStake): static
+    {
+        if ($this->variantStakes->removeElement($variantStake)) {
+            // set the owning side to null (unless already changed)
+            if ($variantStake->getVariant() === $this) {
+                $variantStake->setVariant(null);
+            }
+        }
 
         return $this;
     }
