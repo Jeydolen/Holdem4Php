@@ -2,19 +2,19 @@
 
 namespace App\Entity;
 
-use App\Repository\VariantStakesRepository;
+use App\Repository\StakeRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Attribute\Groups;
 
-#[ORM\Entity(repositoryClass: VariantStakesRepository::class)]
-class VariantStakes
+#[ORM\Entity(repositoryClass: StakeRepository::class)]
+class Stake
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(inversedBy: 'variantStakes')]
+    #[ORM\ManyToOne(inversedBy: 'Stake')]
     #[ORM\JoinColumn(nullable: false, name: "variant_id", referencedColumnName: "variant_id")]
     private ?Variant $variant = null;
 

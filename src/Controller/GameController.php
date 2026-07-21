@@ -11,11 +11,11 @@ use App\DTO\Phase\PhaseDTO;
 
 use App\Entity\Card;
 use App\Entity\Phase;
-use App\Entity\Bankroll;
+use App\Entity\Stake;
 use App\Entity\Variant;
+use App\Entity\Bankroll;
 use App\Entity\VariantCards;
 use App\Entity\VariantPhases;
-use App\Entity\VariantStakes;
 
 use App\Repository\UserRepository;
 
@@ -49,11 +49,11 @@ final class GameController extends AbstractController
         $variant->setName($variantDTO->name);
         $this->em->persist($variant);
 
-        $variant_stake = new VariantStakes();
-        $variant_stake->setMinBuyIn($variantDTO->minBuyIn);
-        $variant_stake->setMaxBuyIn($variantDTO->maxBuyIn);
-        $variant_stake->setVariant($variant);
-        $this->em->persist($variant_stake);
+        $stake = new Stake();
+        $stake->setMinBuyIn($variantDTO->minBuyIn);
+        $stake->setMaxBuyIn($variantDTO->maxBuyIn);
+        $stake->setVariant($variant);
+        $this->em->persist($stake);
 
         foreach ($variantDTO->phases as $phaseDTO) {
             $phase = new Phase();

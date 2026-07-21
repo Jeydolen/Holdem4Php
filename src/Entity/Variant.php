@@ -60,17 +60,17 @@ class Variant
     private ?int $min_player_threshold = null;
 
     /**
-     * @var Collection<int, VariantStakes>
+     * @var Collection<int, Stake>
      */
-    #[ORM\OneToMany(targetEntity: VariantStakes::class, mappedBy: 'variant', orphanRemoval: true)]
-    private Collection $variantStakes;
+    #[ORM\OneToMany(targetEntity: Stake::class, mappedBy: 'variant', orphanRemoval: true)]
+    private Collection $stakes;
 
     public function __construct()
     {
         $this->variantCards = new ArrayCollection();
         $this->variantPhases = new ArrayCollection();
         $this->tables = new ArrayCollection();
-        $this->variantStakes = new ArrayCollection();
+        $this->stakes = new ArrayCollection();
     }
 
     public function getVariantId(): ?int
@@ -254,31 +254,31 @@ class Variant
     }
 
     /**
-     * @return Collection<int, VariantStakes>
+     * @return Collection<int, Stake>
      */
     #[Groups("show_stake")]
     #[SerializedName("stakes")]
-    public function getVariantStakes(): Collection
+    public function getStakes(): Collection
     {
-        return $this->variantStakes;
+        return $this->stakes;
     }
 
-    public function addVariantStake(VariantStakes $variantStake): static
+    public function addVariantStake(Stake $stake): static
     {
-        if (!$this->variantStakes->contains($variantStake)) {
-            $this->variantStakes->add($variantStake);
-            $variantStake->setVariant($this);
+        if (!$this->stakes->contains($stake)) {
+            $this->stakes->add($stake);
+            $stake->setVariant($this);
         }
 
         return $this;
     }
 
-    public function removeVariantStake(VariantStakes $variantStake): static
+    public function removeVariantStake(Stake $stake): static
     {
-        if ($this->variantStakes->removeElement($variantStake)) {
+        if ($this->stakes->removeElement($stake)) {
             // set the owning side to null (unless already changed)
-            if ($variantStake->getVariant() === $this) {
-                $variantStake->setVariant(null);
+            if ($stake->getVariant() === $this) {
+                $stake->setVariant(null);
             }
         }
 

@@ -2,22 +2,22 @@
 
 namespace App\Repository;
 
-use App\Entity\VariantStakes;
+use App\Entity\Stake;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
- * @extends ServiceEntityRepository<VariantStakes>
+ * @extends ServiceEntityRepository<Stake>
  */
-class VariantStakesRepository extends ServiceEntityRepository
+class StakeRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, VariantStakes::class);
+        parent::__construct($registry, Stake::class);
     }
 
     //    /**
-    //     * @return VariantStakes[] Returns an array of VariantStakes objects
+    //     * @return Stake[] Returns an array of Stake objects
     //     */
     //    public function findByExampleField($value): array
     //    {
@@ -31,7 +31,7 @@ class VariantStakesRepository extends ServiceEntityRepository
     //        ;
     //    }
 
-    //    public function findOneBySomeField($value): ?VariantStakes
+    //    public function findOneBySomeField($value): ?Stake
     //    {
     //        return $this->createQueryBuilder('v')
     //            ->andWhere('v.exampleField = :val')
