@@ -37,6 +37,12 @@ class Table
     #[ORM\Column(length: 13)]
     private ?string $instance_table_id = null;
 
+    #[ORM\Column(length: 30, nullable: true)]
+    private ?string $table_status = null;
+
+    #[ORM\Column]
+    private ?\DateTimeImmutable $created_at = null;
+
     public function __construct()
     {
         $this->tablePlayers = new ArrayCollection();
@@ -123,6 +129,30 @@ class Table
     public function setInstanceTableId(string $instance_table_id): static
     {
         $this->instance_table_id = $instance_table_id;
+
+        return $this;
+    }
+
+    public function getTableStatus(): ?string
+    {
+        return $this->table_status;
+    }
+
+    public function setTableStatus(?string $table_status): static
+    {
+        $this->table_status = $table_status;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->created_at;
+    }
+
+    public function setCreatedAt(\DateTimeImmutable $created_at): static
+    {
+        $this->created_at = $created_at;
 
         return $this;
     }

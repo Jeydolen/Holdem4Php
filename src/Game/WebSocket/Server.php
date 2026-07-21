@@ -2,6 +2,7 @@
 
 namespace App\Game\WebSocket;
 
+use DateTimeImmutable;
 use Exception;
 use JsonException;
 
@@ -191,6 +192,7 @@ class Server
         $table->setVariant($variant);
         $table->setAddress($address . ":" . $this->webSocketServer->port);
         $table->setInstanceTableId($table_id);
+        $table->setCreatedAt(new DateTimeImmutable());
         $this->em->persist($table);
 
         $this->tableRegistry->addTable(
