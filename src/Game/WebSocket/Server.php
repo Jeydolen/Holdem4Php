@@ -174,7 +174,7 @@ class Server
         $game_phases = [];
         // Game phase construction
         foreach ($phases as $phase) {
-            $this->logger->debug("Creating phase", ["phase" => $phase]);
+            $this->logger->debug("Creating phase", ["phase" => $phase->getType()]);
 
             $game_phase = $this->phaseFactory->create(
                 $phase->getType(),
