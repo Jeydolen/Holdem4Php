@@ -216,7 +216,11 @@ class Table implements EventSubscriberInterface
         $this->players = array_filter($this->players, fn(Player $value): bool => $value->getUserId() !== $player->getUserId());
         $this->logger->info("Player removed", ["player_id" => $player->getUserId(), "player_count" => \sizeof($this->players)]);
 
-        $event_message = ["table_state" => "remove_player", "player_id" => $player->getUserId(), "player_count" => \sizeof($this->players)];
+        $event_message = [
+            "table_state" => "remove_player",
+            "player_id" => $player->getUserId(),
+            "player_count" => \sizeof($this->players)
+        ];
         if ($reconnect) {
             // This works to disconnect the previous player without disconnecting the new one
             $player->sendMessage($event_message);
@@ -229,9 +233,16 @@ class Table implements EventSubscriberInterface
         $this->evaluateTableStatus();
 
         // If the game is not in a waiting state, the player won't be refunded his table bankroll
+        if ($this->tableState === TableStateEnum::WAITING_FOR_PLAYERS) {
+            $this->logger->info("Player disconnecting in waiting state, refunding bankroll...", ["table_bankroll" => $player->getBankroll()]);
+            $bankroll = $player->getUser()->getBankroll();
+            $bankroll->setAmount($bankroll->getAmount() + $player->getBankroll());
+            $player->setBankroll(0);
+        }
 
         $table_player = $this->entityTable->getTablePlayers()->findFirst(fn($k, $v) => $v->getUser()->getUserId()->toString() === $player->getUserId());
         $this->entityTable->removeTablePlayer($table_player);
+
         $this->em->flush();
     }
 
