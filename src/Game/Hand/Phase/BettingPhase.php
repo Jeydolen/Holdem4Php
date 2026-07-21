@@ -40,6 +40,10 @@ class BettingPhase extends AbstractPhase
 
     public function play(HandContext $context): void
     {
+        // IMPORTANT: Need to reset every time phase is played
+        $this->currentPlayerIndex = 0;
+        $this->cancelCurrentTimer();
+
         $players = $context->getPlayerCollection()->getCompetingPlayers();
         $this->logger->info("Playing phase", ["phase" => (self::class), "max_betting_amount" => $this->maxBettingAmount]);
         if (\count($players) <= 1) {
@@ -81,8 +85,7 @@ class BettingPhase extends AbstractPhase
     private function cancelCurrentTimer(): void
     {
         if (!empty($this->timerId)) {
-            $result = Timer::clear($this->timerId);
-            $this->logger->debug("Canceling timer {timer_id}, result: {result}", ["timer_id" => $this->timerId, "result" => $result]);
+            Timer::clear($this->timerId);
             $this->timerId = null;
         }
     }
@@ -93,22 +96,22 @@ class BettingPhase extends AbstractPhase
         $this->cancelCurrentTimer();
 
         $activePlayers = $this->context->getPlayerCollection()->getCompetingPlayers();
-        if (\count($activePlayers) <= 1) {
+        $playerCount = \count($activePlayers);
+
+        if ($playerCount <= 1) {
             $this->logger->debug("Not enough players to continue betting");
             $this->endPhase();
             return;
         }
 
-        // There might be a bug here
-        $players = $this->context->getPlayerCollection()->getAllPlayers();
-
-        if (!empty($players[$this->currentPlayerIndex + 1])) {
-            $this->currentPlayerIndex += 1;
-            $this->askPlayer($players[$this->currentPlayerIndex]);
-            return;
+        $nextIndex = $this->currentPlayerIndex + 1;
+        if ($nextIndex < $playerCount) {
+            $this->currentPlayerIndex = $nextIndex;
+            $this->askPlayer($activePlayers[$this->currentPlayerIndex]);
+        } else {
+            $this->logger->debug("No more players to ask. Round complete.");
+            $this->endPhase();
         }
-
-        $this->endPhase();
     }
 
     public static function fromArray(array $data): self
@@ -126,18 +129,22 @@ class BettingPhase extends AbstractPhase
 
     public function onPlayerAction(PlayerAction $event): void
     {
-        $players = $this->context->getPlayerCollection()->getAllPlayers();
+        $competingPlayers = array_values($this->context->getPlayerCollection()->getCompetingPlayers());
         $player = $event->getPlayer();
+        $currentPlayer = $competingPlayers[$this->currentPlayerIndex] ?? null;
+
         $this->logger->debug(
-            "Waiting for player {player} timer {timer_id} event player {event_player}",
+            "Waiting for player action",
             [
-                "player" => $players[$this->currentPlayerIndex] ?? null,
-                "timer_id" => $this->timerId,
-                "event_player" => $player,
+                "current_player_id" => $currentPlayer?->getUserId(),
+                "event_player_id" => $player->getUserId(),
+                "player_count" => \count($competingPlayers),
+                "legal_actions" => $this->bettingManager->computeLegalActions()
             ]
         );
 
-        if ($player !== $players[$this->currentPlayerIndex]) {
+        // Only process action if it is the current player's turn
+        if ($player->getUserId() !== ($currentPlayer?->getUserId())) {
             return;
         }
 
