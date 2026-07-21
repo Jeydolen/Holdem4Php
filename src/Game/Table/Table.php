@@ -61,6 +61,8 @@ class Table implements EventSubscriberInterface
 
     private Stake $stake;
 
+    private EventDispatcher $dispatcher;
+
     /**
      * @param int $maxPlayers
      * @param IPhase[] $phases
@@ -70,7 +72,6 @@ class Table implements EventSubscriberInterface
         array $phases,
         DeckGenerationDTO $deckGenerationDTO,
         private LoggerInterface $logger,
-        private EventDispatcher $dispatcher,
         private EntityTable $entityTable,
         private EntityManagerInterface $em
     ) {
@@ -80,13 +81,18 @@ class Table implements EventSubscriberInterface
 
         $this->updateTableState(TableStateEnum::WAITING_FOR_PLAYERS);
 
-        // Table has the responsability to provide the event dispatcher to the phases 
-        foreach ($phases as $phase) {
-            $phase->withEventDispatcher($dispatcher);
-        }
-
         $this->deckFactory = new DeckFactory($deckGenerationDTO);
+        $this->resetDispatcher();
+    }
+
+    private function resetDispatcher(): void
+    {
+        $this->dispatcher = new EventDispatcher();
         $this->dispatcher->addSubscriber($this);
+
+        foreach ($this->players as $player) {
+            $this->dispatcher->addSubscriber($player);
+        }
     }
 
     private function updateTableState(TableStateEnum $newTableState): void
@@ -227,6 +233,8 @@ class Table implements EventSubscriberInterface
             return;
         }
 
+        $this->dispatcher->removeSubscriber($player);
+
         $player->sendMessage($event_message);
         $this->broadcastJson($event_message);
 
@@ -254,12 +262,16 @@ class Table implements EventSubscriberInterface
 
     public function newHand()
     {
+        // We reset the dispatcher to remove references to previous phases
+        $this->resetDispatcher();
+
         // Save previous hand in db for the history
         // $this->currentHand;
         foreach ($this->players as $player) {
             $player->resetState();
         }
 
+        unset($this->currentHand);
         $this->currentHand = new PokerHand($this->players, $this->phases, $this->deckFactory->newDeck(), $this->dispatcher, $this->logger);
         $this->logger->info("New hand");
         $this->broadcastJson(["table_state" => "new_hand"]);

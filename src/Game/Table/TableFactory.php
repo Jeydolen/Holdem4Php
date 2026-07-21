@@ -24,7 +24,6 @@ class TableFactory
             $phases,
             $deckGenerationDTO,
             $this->logger,
-            new EventDispatcher(),
             $table,
             $this->em
         );
