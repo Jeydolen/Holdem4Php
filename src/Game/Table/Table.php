@@ -371,10 +371,16 @@ class Table implements EventSubscriberInterface
             $this->nextPhase();
         }
 
-
         if ($event->getAction() === "player_fold") {
             $this->logger->info("Table received player fold instruction", context: ["data" => $event->getEventData()]);
             $this->currentHand->foldPlayer($event->getEventData()["player_id"]);
+        }
+
+        if ($event->getAction() === "player_won") {
+            // We have to award player his chips
+            $user_id = $event->getEventData()["player_id"];
+            $amount = $event->getEventData()["amount"];
+            $this->getPlayer($user_id)->setBankroll($amount);
         }
 
         $this->broadcastJson(["table_state" => "table_update", "data" => $event->getEventData(), "action" => $event->getAction()]);

@@ -17,30 +17,70 @@ class ShowdownPhase extends AbstractPhase
 
     public function play(HandContext $context): void
     {
-        $players = $context->getPlayerCollection()->getCompetingPlayers();
+        $playerCollection = $context->getPlayerCollection();
+        $players = $playerCollection->getCompetingPlayers();
         $boardCardPile = $context->getBoardCards();
         $cardRankEvaluator = $context->getCardRankEvaluator();
+        $bettingManager = $context->getBettingManager();
 
         $playerHandStrength = [];
-        $highest = 0;
         foreach ($players as $player) {
             $playerCards = $player->getHoleCards()->getCards();
             $evaluation = $cardRankEvaluator->evaluate(new BoardCards(7, true, [...$boardCardPile->getCards(), ...$playerCards]));
             $playerHandStrength[$player->getUserId()] = $evaluation;
-
-            if ($evaluation > $highest) {
-                $highest = $evaluation;
-            }
         }
 
-        // Find players from highest hand
-        $winningPlayers = array_filter($playerHandStrength, fn($value) => $value === $highest);
+        $pots = $bettingManager->computePots($playerCollection->getAllPlayers(), $playerCollection->getFoldedPlayerIds());
+        foreach ($pots as $pot) {
+            $amount = $pot->getAmount();
+            $eligiblePlayers = $pot->getCompetingPlayers();
+            if ($amount === 0 || empty($eligiblePlayers)) {
+                continue;
+            }
 
-        foreach ($winningPlayers as $playerId => $value) {
-            $this->dispatcher->dispatch(new PhaseState("player_won", ["player_id" => $playerId, "hand_value" => $value]));
+            if (\count($eligiblePlayers) === 1) {
+                $winnerId = $eligiblePlayers[0]->getUserId();
+                $this->awardPot($winnerId, $amount, $playerHandStrength[$winnerId]);
+                continue;
+            }
+
+            // Filter hands to only players eligible to this exact pot
+            $eligibleStrengths = array_intersect_key(
+                $playerHandStrength,
+                array_flip($eligiblePlayers)
+            );
+
+            $highest = max($eligibleStrengths);
+            $winningPlayers = array_filter($eligibleStrengths, fn($value) => $value === $highest);
+
+            $this->awardSplitPot($winningPlayers, $amount);
         }
 
         $this->endPhase();
+    }
+
+    private function awardPot(string $playerId, int $amount, $handValue): void
+    {
+        $this->dispatcher->dispatch(new PhaseState("player_won", [
+            "player_id" => $playerId,
+            "hand_value" => $handValue,
+            "amount" => $amount,
+        ]));
+    }
+
+    /** @param array<string, mixed> $winningPlayers playerId => hand_value */
+    private function awardSplitPot(array $winningPlayers, int $amount): void
+    {
+        $share = intdiv($amount, count($winningPlayers));
+        // Le reliquat n'est distribué à personne : il reste "perdu" (récupéré par le casino/la table).
+
+        foreach ($winningPlayers as $playerId => $handValue) {
+            $this->dispatcher->dispatch(new PhaseState("player_won", [
+                "player_id" => $playerId,
+                "hand_value" => $handValue,
+                "amount" => $share,
+            ]));
+        }
     }
 
     public static function fromArray(array $data): self

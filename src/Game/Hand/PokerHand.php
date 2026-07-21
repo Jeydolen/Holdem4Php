@@ -64,7 +64,11 @@ class PokerHand
 
         // If there is only one player left, he wins automatically
         if (\sizeof($active_players) <= 1) {
-            $this->dispatcher->dispatch(new PhaseState("player_won", ["player_id" => $active_players[0]?->getUserId() ?? null, "hand_value" => 0]));
+            $this->dispatcher->dispatch(new PhaseState("player_won", [
+                "player_id" => $active_players[0]?->getUserId() ?? null,
+                "hand_value" => 0,
+                "amount" => $this->handContext->getBettingManager()->getPotAmount()
+            ]));
             $this->logger->debug("Last player won", ["players" => $active_players[0] ?? null]);
             $this->sendPokerHandEndSignal();
             return;
@@ -93,11 +97,6 @@ class PokerHand
     {
         // We have to distribute the pots to the competing players
         $playerCollection = $this->handContext->getPlayerCollection();
-        $pots = $this->handContext->getBettingManager()->computePots($playerCollection->getAllPlayers(), $playerCollection->getFoldedPlayerIds());
-
-        foreach ($pots as $pot) {
-            $pot->getCompetingPlayers();
-        }
 
         $this->dispatcher->dispatch(new PhaseState("no_more_phases"));
     }
