@@ -111,10 +111,19 @@ class Player implements EventSubscriberInterface
      */
     public function sendCurrentState(): void
     {
-        $this->sendMessage([
-            "cards" => $this->getHoleCards()->getCards(),
-            "bet_total_amount" => $this->getBetTotalAmount()
-        ]);
+        $state = $this->getPublicState();
+        $state["cards"] = $this->getHoleCards()->getCards();
+        $this->sendMessage($state);
+    }
+
+    public function getPublicState(): array
+    {
+        return [
+            "user_id" => $this->getUserId(),
+            "username" => $this->getUser()->getUsername(),
+            "bet_total_amount" => $this->getBetTotalAmount(),
+            "bankroll" => $this->getBankroll()
+        ];
     }
 
     public function onPlayerAction(PlayerAction $event): void
