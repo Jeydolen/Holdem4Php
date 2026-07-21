@@ -36,6 +36,8 @@ class Player implements EventSubscriberInterface
 
     private ?int $betTotalAmount = null;
 
+    private Bankroll $bankroll;
+
     public function __construct(
         User $user,
         private ConnectionWrapper $connection,
@@ -43,6 +45,7 @@ class Player implements EventSubscriberInterface
     ) {
         // For now user, is just a string for simplicity
         $this->user = $user;
+        $this->bankroll = new Bankroll(0);
         $this->resetState();
     }
 
@@ -135,6 +138,17 @@ class Player implements EventSubscriberInterface
     public function getBetTotalAmount(): ?int
     {
         return $this->betTotalAmount;
+    }
+
+
+    public function setBankroll(int $amount): void
+    {
+        $this->bankroll->setAmount($amount);
+    }
+
+    public function getBankroll(): int
+    {
+        return $this->bankroll->getAmount();
     }
 
     public function __tostring(): string
