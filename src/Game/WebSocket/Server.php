@@ -331,25 +331,24 @@ class Server
             return;
         }
 
-        if ($action === "playerJoin" || $action === "playerQuit") {
-            $player = new Player($connection->getUser(), $connection, $this->logger);
-
-            if ($action === "playerJoin") {
-                if (empty($data["buy_in"]) || !\is_int($data["buy_in"])) {
-                    throw new Exception("Buy in is required to enter a table");
-                }
-
-                $table->addPlayer($player, $data["buy_in"]);
-            } else if ($action === "playerQuit") {
-                $table->removePlayer($player, false);
+        if ($action === "playerJoin") {
+            if (empty($data["buy_in"]) || !\is_int($data["buy_in"])) {
+                throw new Exception("Buy in is required to enter a table");
             }
 
+            $player = new Player($connection->getUser(), $connection, $this->logger);
+            $table->addPlayer($player, $data["buy_in"]);
             return;
         }
 
         $player = $table->getPlayer($connection->getUser()->getUserId());
         if (empty($player)) {
             throw new Exception("Player not found");
+        }
+
+        if ($action === "playerQuit") {
+            $table->removePlayer($player, false);
+            return;
         }
 
         if ($action === "playerGetState") {
