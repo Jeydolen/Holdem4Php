@@ -55,6 +55,6 @@ class PlayerCollection
 
     public function getAllPlayers(): array
     {
-        return $this->players;
+        return array_values($this->players);
     }
 }
