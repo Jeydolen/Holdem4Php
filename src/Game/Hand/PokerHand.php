@@ -98,4 +98,9 @@ class PokerHand
 
         $this->dispatcher->dispatch(new PhaseState("no_more_phases"));
     }
+
+    public function getHandContext(): HandContext
+    {
+        return $this->handContext;
+    }
 }
