@@ -36,6 +36,6 @@ abstract class AbstractPhase implements IPhase, EventSubscriberInterface
     protected function endPhase(): void
     {
         $this->logger->debug("Ending phase", context: ["calling_class" => \get_called_class()]);
-        $this->dispatcher->dispatch(new PhaseState("next_phase"));
+        $this->dispatcher->dispatch(new PhaseState("next_phase", ["phase" => \get_called_class()]));
     }
 }
