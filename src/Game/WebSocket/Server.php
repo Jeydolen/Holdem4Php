@@ -2,9 +2,9 @@
 
 namespace App\Game\WebSocket;
 
-use DateTimeImmutable;
 use Exception;
 use JsonException;
+use DateTimeImmutable;
 
 use Psr\Log\LoggerInterface;
 
@@ -16,6 +16,7 @@ use OpenSwoole\WebSocket\Server as WebSocketServer;
 use Doctrine\ORM\EntityManagerInterface;
 
 use App\Entity\Variant;
+use App\Entity\Stake;
 
 use App\DTO\DeckGenerationDTO;
 
@@ -27,6 +28,8 @@ use App\Game\Player\Player;
 use App\Game\Table\TableFactory;
 use App\Game\Table\TableRegistry;
 use App\Game\Hand\Phase\PhaseFactory;
+
+use App\Game\Table\Exception\TableException;
 
 use App\Repository\UserRepository;
 use App\Repository\VariantRepository;
@@ -146,19 +149,24 @@ class Server
         $this->logger->info("Loading table rules");
         $variants = $this->variantRepository->findAll();
         $this->logger->info("Table rules count", ["rules_count" => \sizeof($variants)]);
+        $table_count = 0;
 
         foreach ($variants as $k => $variant) {
             $this->logger->debug("Loading new variant", ["number" => $k]);
-            $this->createTable($variant, gethostbyname(gethostname() . '.'));
+            // We create a new table for each stake
+            foreach ($variant->getStakes() as $stake) {
+                $table_count += 1;
+                $this->createTable($variant, $stake, gethostbyname(gethostname() . '.'));
+            }
         }
 
         $this->em->flush();
         $this->logger->info("Loaded all table rules");
 
-        return \sizeof($variants);
+        return $table_count;
     }
 
-    private function createTable(Variant $variant, ?string $address)
+    private function createTable(Variant $variant, Stake $stake, ?string $address)
     {
         // Phases sorted by priority
         $phases = $variant->getPhases();
@@ -193,6 +201,7 @@ class Server
         $table->setAddress($address . ":" . $this->webSocketServer->port);
         $table->setInstanceTableId($table_id);
         $table->setCreatedAt(new DateTimeImmutable());
+        $table->setStake($stake);
         $this->em->persist($table);
 
         $this->tableRegistry->addTable(
@@ -201,7 +210,7 @@ class Server
                 $variant->getMaxPlayers(),
                 $game_phases,
                 $deck_rules,
-                $table
+                $table,
             )
         );
 
@@ -312,7 +321,7 @@ class Server
 
         $table = $this->tableRegistry->getTable($table_id);
         if (empty($table)) {
-            throw new Exception("Table does not exist");
+            throw new TableException("Table does not exist");
         }
 
         // TODO: Use real rules for game start
@@ -326,7 +335,11 @@ class Server
             $player = new Player($connection->getUser(), $connection, $this->logger);
 
             if ($action === "playerJoin") {
-                $table->addPlayer($player);
+                if (empty($data["buy_in"]) || !\is_int($data["buy_in"])) {
+                    throw new Exception("Buy in is required to enter a table");
+                }
+
+                $table->addPlayer($player, $data["buy_in"]);
             } else if ($action === "playerQuit") {
                 $table->removePlayer($player, false);
             }
