@@ -366,5 +366,40 @@ class Table implements EventSubscriberInterface
         }
 
         $this->broadcastJson(["table_state" => "table_update", "data" => $event->getEventData(), "action" => $event->getAction()]);
+        $this->broadcastTableState();
+    }
+
+    public function broadcastTableState()
+    {
+        foreach ($this->players as $player) {
+            $this->sendAuthoritativeTableState($player);
+            $player->sendCurrentState();
+        }
+    }
+
+    public function sendAuthoritativeTableState(Player $player): void
+    {
+        $players = \array_map(fn(Player $p) => $p->getPublicState(), $this->players);
+        // No hand, no data to send
+        if (empty($this->currentHand) || $this->tableState !== TableStateEnum::IN_PROGRESS) {
+            $player->sendMessage([
+                "event" => "table_state_authoritative",
+                "hand_started" => false,
+                "data" => ["players" => $players]
+            ]);
+            return;
+        }
+        $hand_context = $this->currentHand->getHandContext();
+
+        $data = [
+            "hand_started" => true,
+            // Send current hand players
+            "players" => \array_map(fn(Player $p) => $p->getPublicState(), $hand_context->getPlayerCollection()->getAllPlayers()),
+            "board_cards" => $hand_context->getBoardCards()->getCards(),
+            "folded_player_ids" => $hand_context->getPlayerCollection()->getFoldedPlayerIds(),
+            "pot_amount" => $hand_context->getBettingManager()->getPotAmount(),
+        ];
+
+        $player->sendMessage(["event" => "table_state_authoritative", "data" => $data]);
     }
 }
