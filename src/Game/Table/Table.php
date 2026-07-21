@@ -4,6 +4,7 @@ namespace App\Game\Table;
 
 use App\DTO\DeckGenerationDTO;
 
+use App\Entity\Stake;
 use App\Entity\TablePlayers;
 use App\Entity\Table as EntityTable;
 
@@ -20,6 +21,7 @@ use App\Game\CardPile\DeckFactory;
 use App\Game\Table\Exception\TableException;
 use App\Game\Table\Exception\TableFullException;
 use App\Game\Table\Exception\PlayerAlreadyInGameException;
+use App\Game\Table\Exception\InsufficientBankrollException;
 
 use OpenSwoole\Timer;
 
@@ -57,6 +59,8 @@ class Table implements EventSubscriberInterface
 
     private int $startingTimerId;
 
+    private Stake $stake;
+
     /**
      * @param int $maxPlayers
      * @param IPhase[] $phases
@@ -72,6 +76,7 @@ class Table implements EventSubscriberInterface
     ) {
         $this->maxPlayers = $maxPlayers;
         $this->phases = $phases;
+        $this->stake = $entityTable->getStake();
 
         $this->updateTableState(TableStateEnum::WAITING_FOR_PLAYERS);
 
@@ -110,7 +115,15 @@ class Table implements EventSubscriberInterface
         }
     }
 
-    public function addPlayer(Player $player): void
+    /**
+     * Check if player can connect to the table
+     * @param Player $player
+     * @throws PlayerAlreadyInGameException
+     * @throws TableFullException
+     * @throws TableException
+     * @return true|Player Player when already connected (from another connection) or true when it is a new player
+     */
+    private function canPlayerConnect(Player $player, int $playerBuyIn): true|Player
     {
         $currentPlayer = $this->getPlayer($player->getUserId());
         if (!empty($currentPlayer)) {
@@ -121,38 +134,75 @@ class Table implements EventSubscriberInterface
 
             if ($currentPlayer->isSame($player)) {
                 throw new PlayerAlreadyInGameException();
-            } else {
-                // If the connection is different, we need to replace the previous player instance
-                // (this is in the case of a reconnection)
-                $this->logger->debug("The player is connecting with another connection, removing previous player instance", ["previous_player_id" => $currentPlayer->getUserId()]);
-                $this->removePlayer($currentPlayer, true);
             }
+
+            // If the connection is different, we need to replace the previous player instance
+            // (this is in the case of a reconnection)
+            $this->logger->debug("The player is connecting with another connection, removing previous player instance", ["previous_player_id" => $currentPlayer->getUserId()]);
+            $this->removePlayer($currentPlayer, true);
+
+            return $currentPlayer;
         }
 
         if (\sizeof($this->players) >= $this->maxPlayers) {
             throw new TableFullException();
         }
 
-        if (\in_array($this->tableState, [TableStateEnum::IN_PROGRESS, TableStateEnum::FINISHED])) {
+        // Can't connect to running table except if player joined before
+        if ($this->tableState !== TableStateEnum::WAITING_FOR_PLAYERS) {
             throw new TableException("Game is already running");
         }
 
-        // TODO: Different condition depending on table type (tournament, cash game, ...)
+        // Check bankroll
+        if (($player->getUser()->getBankroll()?->getAmount() ?? 0) < $playerBuyIn) {
+            throw new InsufficientBankrollException("Player has not enough bankroll to join table");
+        }
+
+        // Check min / max buy in
+        if ($playerBuyIn < $this->stake->getMinBuyIn() || $playerBuyIn > $this->stake->getMaxBuyIn()) {
+            throw new TableException("Player buy in is outside authorized range !");
+        }
+
+        return true;
+    }
+
+    public function addPlayer(Player &$player, int $playerBuyIn): void
+    {
+        $player_connect = $this->canPlayerConnect($player, $playerBuyIn);
+        if (empty($player_connect)) {
+            $this->logger->info("Player cannot connect to table", ["player_id" => $player->getUserId()]);
+            return;
+        }
+
+        // Don't add new player if reconnect
+        if ($player_connect === true) {
+            $this->logger->info("New connection, we need to set bankroll");
+            $player->setBankroll($playerBuyIn);
+            $bankroll = $player->getUser()->getBankroll();
+            $bankroll->setAmount($bankroll->getAmount() - $playerBuyIn);
+
+            $table_player = new TablePlayers();
+            $table_player->setTable($this->getEntityTable());
+            $table_player->setUser($player->getUser());
+            $table_player->setAmount($playerBuyIn);
+            $this->entityTable->addTablePlayer($table_player);
+            $this->em->flush();
+        }
 
         $this->logger->info("Player joined", ["player_id" => $player->getUserId()]);
         $this->players[] = $player;
         $this->dispatcher->addSubscriber($player);
 
-        $this->broadcastJson(["table_state" => "new_player", "player_id" => $player->getUserId(), "player_count" => \sizeof($this->players)]);
-
         $this->evaluateTableStatus();
 
-        $table_player = new TablePlayers();
-        $table_player->setTable($this->getEntityTable());
-        $table_player->setUser($player->getUser());
-        $table_player->setAmount(0);
-        $this->entityTable->addTablePlayer($table_player);
-        $this->em->flush();
+        // We have to broadcast the event AFTER the persistance bc it won't contain player bankroll otherwise
+        $this->broadcastJson([
+            "table_state" => "new_player",
+            "player_id" => $player->getUserId(),
+            "player" => $player->getPublicState(),
+            "player_count" => \sizeof($this->players)
+        ]);
+        $this->sendAuthoritativeTableState($player);
     }
 
     /**
