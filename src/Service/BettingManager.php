@@ -8,19 +8,19 @@ use App\Game\Pot;
 use App\Game\Player\Player;
 
 use App\Enum\PlayerBettingActionEnum;
-
 use App\Exception\InvalidPlayerBettingActionException;
-
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class BettingManager
 {
     /**
+     * Actions that change the current bet amount/price, 
+     * requiring a new round of questioning.
+     *
      * @var PlayerBettingActionEnum[]
      */
     public const array NOTABLE_ACTIONS = [
         PlayerBettingActionEnum::BET,
-        PlayerBettingActionEnum::CALL,
         PlayerBettingActionEnum::RAISE,
         PlayerBettingActionEnum::ALL_IN
     ];
@@ -52,7 +52,7 @@ class BettingManager
      */
     public function computeLegalActions(): array
     {
-        // By default, if there is no previous action, you can FOLD, CHECK or BET (and ALL_IN which is a type of BET)
+        // By default, if there is no previous action, you can FOLD, CHECK or BET
         if (empty($this->previousNotableAction)) {
             return [PlayerBettingActionEnum::FOLD, PlayerBettingActionEnum::BET, PlayerBettingActionEnum::CHECK];
         }
@@ -79,14 +79,11 @@ class BettingManager
                 throw new InvalidPlayerBettingActionException();
             }
 
-            // We need to check only if its not an all in
             $isAllIn = $playerBet === $maxPlayerBet;
             if (!$isAllIn) {
-                // In case of call, it needs to be the same amount or all in
                 if ($playerAction === PlayerBettingActionEnum::CALL && $playerBet !== $this->minimalLegalBet) {
                     throw new InvalidPlayerBettingActionException();
                 } else if ($playerAction === PlayerBettingActionEnum::BET && $playerBet < $this->minimalLegalBet) {
-                    // When betting, it needs to be at least the last betting amount or all in
                     throw new InvalidPlayerBettingActionException();
                 }
             }
@@ -94,27 +91,34 @@ class BettingManager
     }
 
     /**
-     * Using player action to determine what we should be doint after
      * @param string $playerId
      * @param PlayerBettingActionEnum $playerAction
      * @param mixed $playerBet
-     * @return bool False: when there is nothing more to do (eg: player is folding) True: when we need to ask players again (eg: betting)
+     * @return bool True: if the action changed the bet amount (requires a new round), False: otherwise
      */
     public function play(string $playerId, PlayerBettingActionEnum $playerAction, ?int $playerBet): bool
     {
         $this->validatePlayerAction($playerAction, $playerBet);
 
-        // Advertising others what the player did
-        $this->dispatcher->dispatch(new PhaseState("player_betting_action", ["player_id" => $playerId, "action" => $playerAction, "betting_amount" => $playerBet]));
+        $this->dispatcher->dispatch(new PhaseState("player_betting_action", [
+            "player_id" => $playerId,
+            "action" => $playerAction,
+            "betting_amount" => $playerBet
+        ]));
 
         if ($playerAction === PlayerBettingActionEnum::FOLD) {
             $this->dispatcher->dispatch(new PhaseState("player_fold", ["player_id" => $playerId]));
             return false;
         }
 
+        // Call does increment the bot but it is not a betting action per se
+        if ($playerAction === PlayerBettingActionEnum::CALL) {
+            $this->registerBet($playerAction, $playerBet);
+        }
+
         if (\in_array($playerAction, static::NOTABLE_ACTIONS)) {
             $this->registerBet($playerAction, $playerBet);
-            // All active players need to be asked if they want to call the new bet
+            // Returns true because the bet level has changed; we need to loop back to the first player
             return true;
         }
 
