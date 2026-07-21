@@ -268,6 +268,9 @@ class Server
             $connection->setUser($this->userRepository->findOneBy(["user_id" => $uid]));
 
             $this->handleActions($connection, $json["action"], $json);
+        } catch (TableException $e) {
+            // Normal kind of error (table full, not enough bankroll, ...)
+            $server->push($fd, $this->serializer->serialize(["error" => $e->getMessage(), "error_type" => "table_exception"], "json"));
         } catch (Exception $e) {
             $this->logger->error($e);
             $server->push($fd, $this->serializer->serialize(["error" => $e->getMessage(), "error_type" => \get_class($e)], "json"));
