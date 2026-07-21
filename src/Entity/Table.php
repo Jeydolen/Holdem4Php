@@ -43,6 +43,11 @@ class Table
     #[ORM\Column]
     private ?\DateTimeImmutable $created_at = null;
 
+    #[Groups("show_table_stake")]
+    #[ORM\OneToOne(cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Stake $stake = null;
+
     public function __construct()
     {
         $this->tablePlayers = new ArrayCollection();
@@ -153,6 +158,18 @@ class Table
     public function setCreatedAt(\DateTimeImmutable $created_at): static
     {
         $this->created_at = $created_at;
+
+        return $this;
+    }
+
+    public function getStake(): ?Stake
+    {
+        return $this->stake;
+    }
+
+    public function setStake(Stake $stake): static
+    {
+        $this->stake = $stake;
 
         return $this;
     }
