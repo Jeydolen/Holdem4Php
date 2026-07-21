@@ -245,4 +245,30 @@ class BettingPhaseTest extends TestCase
         $this->expectException(\App\Exception\InvalidPlayerBettingActionException::class);
         $this->sendAction($p2, PlayerBettingActionEnum::CALL, 10); // below minimum
     }
+
+    public function testPhaseResetCorrectlyWhenCalledASecondTime(): void
+    {
+        $p1 = $this->makePlayer("p1");
+        $p2 = $this->makePlayer("p2");
+
+        $phase = $this->makePhase();
+        $players = [$p1, $p2];
+        $context = $this->makeHandContext($players);
+        $phase->play($context);
+
+        $this->sendAction($p1, PlayerBettingActionEnum::BET, 50);
+        $this->sendAction($p2, PlayerBettingActionEnum::CALL, 50);
+
+        $this->assertContains("next_phase", $this->dispatchedActions);
+        // Everything is ok here
+        // We can loop over again
+
+        $this->dispatchedActions = [];
+        $phase->play($context);
+
+        $this->sendAction($p1, PlayerBettingActionEnum::BET, 50);
+        $this->sendAction($p2, PlayerBettingActionEnum::CALL, 50);
+
+        $this->assertContains("next_phase", $this->dispatchedActions);
+    }
 }
