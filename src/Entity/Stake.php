@@ -18,11 +18,11 @@ class Stake
     #[ORM\JoinColumn(nullable: false, name: "variant_id", referencedColumnName: "variant_id")]
     private ?Variant $variant = null;
 
-    #[Groups(["show_stake"])]
+    #[Groups(["show_stake", "show_table_stake"])]
     #[ORM\Column]
     private ?int $min_buy_in = null;
 
-    #[Groups(["show_stake"])]
+    #[Groups(["show_stake", "show_table_stake"])]
     #[ORM\Column]
     private ?int $max_buy_in = null;
 

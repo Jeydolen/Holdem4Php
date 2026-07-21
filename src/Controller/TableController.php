@@ -42,6 +42,6 @@ final class TableController extends AbstractController
         }
 
         $tables = $this->tableRepository->findByVariantCriterias($criterias, limit: 15);
-        return $this->json(["tables" => $tables], context: ["groups" => ["show_table", "show_variant"]]);
+        return $this->json(["tables" => $tables], context: ["groups" => ["show_table", "show_variant", "show_table_stake"]]);
     }
 }
