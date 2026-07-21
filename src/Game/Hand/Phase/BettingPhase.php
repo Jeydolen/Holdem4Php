@@ -156,28 +156,33 @@ class BettingPhase extends AbstractPhase
         $event->stopPropagation();
 
         $player_betting_action = PlayerBettingActionEnum::tryFrom($data["betting_action"]);
-        if (empty($player_betting_action)) {
+        if (!$player_betting_action) {
             throw new InvalidPlayerBettingActionException();
         }
 
         $this->logger->info("Player betting action", [
-            "betting_action" => $player_betting_action,
-            "betting_amount" => $data["betting_amount"] ?? null,
+            "action" => $player_betting_action->value,
+            "amount" => $data["betting_amount"] ?? 0,
             "player_id" => $player->getUserId()
         ]);
 
-        $this->bettingManager->play($player->getUserId(), $player_betting_action, $data["betting_amount"] ?? null);
-        // Send player acknowledgement
+        // play() now returns true ONLY if the bet amount changed (Raise/Bet)
+        $isNewBettingRound = $this->bettingManager->play(
+            $player->getUserId(),
+            $player_betting_action,
+            $data["betting_amount"] ?? null
+        );
+
         $player->sendMessage(["action" => "ack_bet"]);
 
-        // Ask players again
-        if (\in_array($player_betting_action, BettingManager::NOTABLE_ACTIONS)) {
-            $player->setBetTotalAmount($player->getBetTotalAmount() + $data["betting_amount"]);
+        if ($isNewBettingRound) {
+            $player->setBetTotalAmount($player->getBetTotalAmount() + ($data["betting_amount"] ?? 0));
             $this->dispatcher->dispatch(new PhaseState("pot_amount", ["pot_amount" => $this->bettingManager->getPotAmount()]));
 
-            if (empty($players[$this->currentPlayerIndex + 1])) {
-                $this->logger->info("Player did a notable action, need to ask every player again");
-                // We set it to -1 because nextPlayer will increment it
+            // If it's the last player in the list and they raised, we must restart the loop
+            if (empty($competingPlayers[$this->currentPlayerIndex + 1])) {
+                $this->logger->info("Betting level changed, resetting turn to first player");
+                // We set it to -1 so that nextPlayer() increments it to 0 (the first player)
                 $this->currentPlayerIndex = -1;
             }
         }
