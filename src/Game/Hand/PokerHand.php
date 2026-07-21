@@ -72,11 +72,14 @@ class PokerHand
 
         /** @var IPhase */
         $phase = $this->phases[$this->phaseIndex];
+        $this->dispatcher->addSubscriber($phase);
+        $phase->withEventDispatcher($this->dispatcher);
         $phase->play($this->handContext);
     }
 
     public function nextPhase(): void
     {
+        $this->dispatcher->removeSubscriber($this->phases[$this->phaseIndex]);
         $this->phaseIndex += 1;
     }
 
