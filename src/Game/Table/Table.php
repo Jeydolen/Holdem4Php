@@ -379,7 +379,7 @@ class Table implements EventSubscriberInterface
 
     public function sendAuthoritativeTableState(Player $player): void
     {
-        $players = \array_map(fn(Player $p) => $p->getPublicState(), $this->players);
+        $players = array_values(\array_map(fn(Player $p) => $p->getPublicState(), $this->players));
         // No hand, no data to send
         if (empty($this->currentHand) || $this->tableState !== TableStateEnum::IN_PROGRESS) {
             $player->sendMessage([
