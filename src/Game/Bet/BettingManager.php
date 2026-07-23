@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Service;
+namespace App\Game\Bet;
 
 use App\Event\PhaseState;
 
 use App\Game\Pot;
 use App\Game\Player\Player;
 
-use App\Enum\PlayerBettingActionEnum;
+use App\Game\Bet\PlayerBettingActionEnum;
 use App\Exception\InvalidPlayerBettingActionException;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
@@ -58,7 +58,7 @@ class BettingManager
         }
 
         // A bet is already on the table: check is no longer allowed
-        return [PlayerBettingActionEnum::FOLD, PlayerBettingActionEnum::BET, PlayerBettingActionEnum::CALL];
+        return [PlayerBettingActionEnum::FOLD, PlayerBettingActionEnum::RAISE, PlayerBettingActionEnum::CALL];
     }
 
     /**

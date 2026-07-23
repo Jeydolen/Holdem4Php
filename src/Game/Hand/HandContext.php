@@ -5,7 +5,7 @@ use App\Game\CardPile\Deck;
 use App\Game\CardPile\BoardCards;
 use App\Game\Player\PlayerCollection;
 
-use App\Service\BettingManager;
+use App\Game\Bet\BettingManager;
 use App\Service\CardRank\CardRankEvaluator;
 
 /**

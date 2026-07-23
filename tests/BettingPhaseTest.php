@@ -5,7 +5,7 @@ namespace App\Tests;
 use App\Event\PhaseState;
 use App\Event\PlayerAction;
 
-use App\Enum\PlayerBettingActionEnum;
+use App\Game\Bet\PlayerBettingActionEnum;
 
 use App\Game\Player\Player;
 use App\Game\Player\PlayerCollection;
@@ -16,7 +16,7 @@ use App\Game\CardPile\BoardCards;
 use App\Game\Hand\HandContext;
 use App\Game\Hand\Phase\BettingPhase;
 
-use App\Service\BettingManager;
+use App\Game\Bet\BettingManager;
 use App\Service\CardRank\CardRankEvaluator;
 
 use Monolog\Logger;

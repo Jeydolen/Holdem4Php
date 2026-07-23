@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Enum;
+namespace App\Game\Bet;
 
 enum PlayerBettingActionEnum: string
 {
@@ -13,5 +13,6 @@ enum PlayerBettingActionEnum: string
     case CALL = "call";
 
     case RAISE = "raise";
+
     case ALL_IN = "all_in";
 }

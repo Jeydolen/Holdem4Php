@@ -2,10 +2,12 @@
 
 namespace App\Tests;
 
-use App\Enum\PlayerBettingActionEnum;
+use App\Game\Bet\BettingManager;
+use App\Game\Bet\PlayerBettingActionEnum;
+
 use App\Event\PhaseState;
 use App\Exception\InvalidPlayerBettingActionException;
-use App\Service\BettingManager;
+
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 

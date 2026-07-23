@@ -11,9 +11,9 @@ use App\Event\PlayerAction;
 use App\Game\Player\Player;
 use App\Game\Hand\HandContext;
 
-use App\Service\BettingManager;
+use App\Game\Bet\BettingManager;
 
-use App\Enum\PlayerBettingActionEnum;
+use App\Game\Bet\PlayerBettingActionEnum;
 use App\Exception\InvalidPlayerBettingActionException;
 
 

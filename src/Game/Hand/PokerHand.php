@@ -9,7 +9,7 @@ use App\Game\CardPile\BoardCards;
 
 use App\Game\Hand\Phase\IPhase;
 
-use App\Service\BettingManager;
+use App\Game\Bet\BettingManager;
 use App\Service\CardRank\CardRankEvaluator;
 
 use Psr\Log\LoggerInterface;
