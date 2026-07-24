@@ -175,10 +175,13 @@ class BettingPhase extends AbstractPhase
 
         $player->sendMessage(["action" => "ack_bet"]);
 
-        if ($isNewBettingRound) {
+        // We have to set the bet total amount when it is a notable action OR Call
+        if ($isNewBettingRound || $player_betting_action === PlayerBettingActionEnum::CALL) {
             $player->setBetTotalAmount($player->getBetTotalAmount() + ($data["betting_amount"] ?? 0));
             $this->dispatcher->dispatch(new PhaseState("pot_amount", ["pot_amount" => $this->bettingManager->getPotAmount()]));
+        }
 
+        if ($isNewBettingRound) {
             // If it's the last player in the list and they raised, we must restart the loop
             if (empty($competingPlayers[$this->currentPlayerIndex + 1])) {
                 $this->logger->info("Betting level changed, resetting turn to first player");
