@@ -18,6 +18,8 @@ use App\Game\Hand\PokerHand;
 use App\Game\Hand\Phase\IPhase;
 use App\Game\CardPile\DeckFactory;
 
+use App\Game\Position\PositionManager;
+
 use App\Game\Table\Exception\TableException;
 use App\Game\Table\Exception\TableFullException;
 use App\Game\Table\Exception\PlayerAlreadyInGameException;
@@ -40,10 +42,6 @@ class Table implements EventSubscriberInterface
         return [PhaseState::class => 'onPhaseStateUpdate'];
     }
 
-    /**
-     * @var Player[]
-     */
-    private array $players = [];
     private PokerHand $currentHand;
 
     public readonly int $maxPlayers;
@@ -63,6 +61,8 @@ class Table implements EventSubscriberInterface
 
     private EventDispatcher $dispatcher;
 
+    private PositionManager $positionManager;
+
     /**
      * @param int $maxPlayers
      * @param IPhase[] $phases
@@ -79,6 +79,8 @@ class Table implements EventSubscriberInterface
         $this->phases = $phases;
         $this->stake = $entityTable->getStake();
 
+        $this->positionManager = new PositionManager([], $this->logger);
+
         $this->updateTableState(TableStateEnum::WAITING_FOR_PLAYERS);
 
         $this->deckFactory = new DeckFactory($deckGenerationDTO);
@@ -90,7 +92,7 @@ class Table implements EventSubscriberInterface
         $this->dispatcher = new EventDispatcher();
         $this->dispatcher->addSubscriber($this);
 
-        foreach ($this->players as $player) {
+        foreach ($this->positionManager->getPlayers() as $player) {
             $this->dispatcher->addSubscriber($player);
         }
     }
@@ -116,7 +118,7 @@ class Table implements EventSubscriberInterface
 
     public function broadcastJson(mixed $data): void
     {
-        foreach ($this->players as $player) {
+        foreach ($this->positionManager->getPlayers(false) as $player) {
             $player->sendMessage($data);
         }
     }
@@ -131,7 +133,7 @@ class Table implements EventSubscriberInterface
      */
     private function canPlayerConnect(Player $player, int $playerBuyIn): true|Player
     {
-        $currentPlayer = $this->getPlayer($player->getUserId());
+        $currentPlayer = $this->positionManager->getPlayer($player->getUserId());
         if (!empty($currentPlayer)) {
             $this->logger->debug(
                 "This player is already connected to the table",
@@ -150,7 +152,7 @@ class Table implements EventSubscriberInterface
             return $currentPlayer;
         }
 
-        if (\sizeof($this->players) >= $this->maxPlayers) {
+        if ($this->positionManager->getPlayerCount() >= $this->maxPlayers) {
             throw new TableFullException();
         }
 
@@ -172,7 +174,7 @@ class Table implements EventSubscriberInterface
         return true;
     }
 
-    public function addPlayer(Player &$player, int $playerBuyIn): void
+    public function addPlayer(Player $player, int $playerBuyIn): void
     {
         $player_connect = $this->canPlayerConnect($player, $playerBuyIn);
         if (empty($player_connect)) {
@@ -196,7 +198,7 @@ class Table implements EventSubscriberInterface
         }
 
         $this->logger->info("Player joined", ["player_id" => $player->getUserId()]);
-        $this->players[] = $player;
+        $this->positionManager->addPlayer($player);
         $this->dispatcher->addSubscriber($player);
 
         $this->evaluateTableStatus();
@@ -206,7 +208,7 @@ class Table implements EventSubscriberInterface
             "table_state" => "new_player",
             "player_id" => $player->getUserId(),
             "player" => $player->getPublicState(),
-            "player_count" => \sizeof($this->players)
+            "player_count" => $this->positionManager->getPlayerCount()
         ]);
         $this->sendAuthoritativeTableState($player);
     }
@@ -219,14 +221,17 @@ class Table implements EventSubscriberInterface
      */
     public function removePlayer(Player $player, bool $reconnect): void
     {
-        $this->players = array_filter($this->players, fn(Player $value): bool => $value->getUserId() !== $player->getUserId());
-        $this->logger->info("Player removed", ["player_id" => $player->getUserId(), "player_count" => \sizeof($this->players)]);
+        $this->positionManager->removePlayer($player);
+        $player_count = $this->positionManager->getPlayerCount();
 
         $event_message = [
             "table_state" => "remove_player",
             "player_id" => $player->getUserId(),
-            "player_count" => \sizeof($this->players)
+            "player_count" => $player_count
         ];
+
+        $this->logger->info("Player removed", $event_message);
+
         if ($reconnect) {
             // This works to disconnect the previous player without disconnecting the new one
             $player->sendMessage($event_message);
@@ -245,7 +250,6 @@ class Table implements EventSubscriberInterface
             $this->logger->info("Player disconnecting in waiting state, refunding bankroll...", ["table_bankroll" => $player->getBankroll()]);
             $bankroll = $player->getUser()->getBankroll();
             $bankroll->setAmount($bankroll->getAmount() + $player->getBankroll());
-            $player->setBankroll(0);
         }
 
         $table_player = $this->entityTable->getTablePlayers()->findFirst(fn($k, $v) => $v->getUser()->getUserId()->toString() === $player->getUserId());
@@ -256,8 +260,7 @@ class Table implements EventSubscriberInterface
 
     public function getPlayer(string $userId): ?Player
     {
-        $player = array_find($this->players, fn(Player $value): bool => $value->getUserId() === $userId);
-        return $player;
+        return $this->positionManager->getPlayer($userId);
     }
 
     public function newHand()
@@ -267,21 +270,20 @@ class Table implements EventSubscriberInterface
 
         // Save previous hand in db for the history
         // $this->currentHand;
-        foreach ($this->players as $player) {
+        $players = $this->positionManager->getPlayers();
+        foreach ($players as $player) {
             $player->resetState();
         }
 
         unset($this->currentHand);
-        $this->currentHand = new PokerHand($this->players, $this->phases, $this->deckFactory->newDeck(), $this->dispatcher, $this->logger);
+        $this->currentHand = new PokerHand($players, $this->phases, $this->deckFactory->newDeck(), $this->dispatcher, $this->logger);
         $this->logger->info("New hand");
         $this->broadcastJson(["table_state" => "new_hand"]);
     }
 
     private function createStartTimer()
     {
-        $this->startingTimerId = Timer::after(($this->entityTable->getVariant()->getStartingTimer() ?? 5) * 1000, function () {
-            $this->evaluateTableStatus();
-        });
+        $this->startingTimerId = Timer::after(($this->entityTable->getVariant()->getStartingTimer() ?? 5) * 1000, fn() => $this->evaluateTableStatus());
     }
 
     private function evaluateTableStatus(): void
@@ -311,14 +313,15 @@ class Table implements EventSubscriberInterface
 
     public function canStart(): bool
     {
-        $canStart = \count($this->players) >= ($this->entityTable->getVariant()->getMinPlayerThreshold() ?? 2);
+        $player_count = $this->positionManager->getPlayerCount();
+        $can_start = $player_count >= ($this->entityTable->getVariant()->getMinPlayerThreshold() ?? 2);
         $this->logger->info("Evaluating if game can start", [
-            "can_start" => $canStart,
+            "can_start" => $can_start,
             "threshold" => $this->entityTable->getVariant()->getMinPlayerThreshold() ?? 2,
-            "player_count" => \count($this->players)
+            "player_count" => $player_count
         ]);
 
-        return $canStart;
+        return $can_start;
     }
 
     public function start()
@@ -333,8 +336,9 @@ class Table implements EventSubscriberInterface
     {
         $this->logger->info("Closing table...");
         // Telling every player that table is closing
-        foreach ($this->players as $p) {
+        foreach ($this->positionManager->getPlayers() as $p) {
             $p->sendMessage(["action" => "table_close"]);
+            $this->removePlayer($p, false);
         }
 
         if (!empty($this->startingTimerId)) {
@@ -360,7 +364,7 @@ class Table implements EventSubscriberInterface
             if ($this->entityTable->getVariant()->getTableType() === TableTypeEnum::CASH_GAME->value) {
                 $this->updateTableState(TableStateEnum::WAITING_FOR_PLAYERS);
                 // If we don't evaluate status, nothing happens until a player join / quit
-                $this->evaluateTableStatus();
+                // $this->evaluateTableStatus();
             } else {
                 $this->updateTableState(TableStateEnum::FINISHED);
             }
@@ -391,7 +395,7 @@ class Table implements EventSubscriberInterface
 
     public function broadcastTableState()
     {
-        foreach ($this->players as $player) {
+        foreach ($this->positionManager->getPlayers(false) as $player) {
             $this->sendAuthoritativeTableState($player);
             $player->sendCurrentState();
         }
@@ -399,7 +403,7 @@ class Table implements EventSubscriberInterface
 
     public function sendAuthoritativeTableState(Player $player): void
     {
-        $players = array_values(\array_map(fn(Player $p) => $p->getPublicState(), $this->players));
+        $players = array_map(fn($p) => $p->getPublicState(), $this->positionManager->getPlayers());
         // No hand, no data to send
         if (empty($this->currentHand) || $this->tableState !== TableStateEnum::IN_PROGRESS) {
             $player->sendMessage([
