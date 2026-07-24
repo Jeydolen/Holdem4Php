@@ -27,12 +27,19 @@ class BettingManager
 
     private ?PlayerBettingActionEnum $previousNotableAction = null;
 
-    private int $minimalLegalBet = 0;
+    // Betting 0 is dumb
+    private int $minimalLegalBet = 1;
 
     public function __construct(
         private EventDispatcher $dispatcher,
         private ?int $pot = 0
     ) {
+    }
+
+    public function resetState()
+    {
+        $this->minimalLegalBet = 1;
+        $this->previousNotableAction = null;
     }
 
     public function getPotAmount(): int
@@ -68,7 +75,7 @@ class BettingManager
     public function validatePlayerAction(PlayerBettingActionEnum $playerAction, ?int $playerBet = null): void
     {
         if (!\in_array($playerAction, $this->computeLegalActions())) {
-            throw new InvalidPlayerBettingActionException();
+            throw new InvalidPlayerBettingActionException("Player action is not legal: {$playerAction->name}");
         }
 
         // TODO: Implement player all in
@@ -83,11 +90,13 @@ class BettingManager
             if (!$isAllIn) {
                 if ($playerAction === PlayerBettingActionEnum::CALL && $playerBet !== $this->minimalLegalBet) {
                     throw new InvalidPlayerBettingActionException();
-                } else if ($playerAction === PlayerBettingActionEnum::BET && $playerBet < $this->minimalLegalBet) {
+                } else if (\in_array($playerAction, [PlayerBettingActionEnum::BET, PlayerBettingActionEnum::RAISE]) && $playerBet < $this->minimalLegalBet) {
                     throw new InvalidPlayerBettingActionException();
                 }
             }
         }
+
+        // TODO: Implement specific betting rules for POT_LIMIT, FIXED_LIMIT, ...
     }
 
     /**
@@ -111,9 +120,9 @@ class BettingManager
             return false;
         }
 
-        // Call does increment the bot but it is not a betting action per se
+        // Call does increment the bet but it is not a betting action per se
         if ($playerAction === PlayerBettingActionEnum::CALL) {
-            $this->registerBet($playerAction, $playerBet);
+            $this->registerBet($playerAction, $this->minimalLegalBet);
         }
 
         if (\in_array($playerAction, static::NOTABLE_ACTIONS)) {
