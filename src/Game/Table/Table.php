@@ -380,7 +380,9 @@ class Table implements EventSubscriberInterface
             // We have to award player his chips
             $user_id = $event->getEventData()["player_id"];
             $amount = $event->getEventData()["amount"];
-            $this->getPlayer($user_id)->setBankroll($amount);
+
+            // Be careful set is not the same as add Bankroll
+            $this->getPlayer($user_id)?->addBankroll($amount);
         }
 
         $this->broadcastJson(["table_state" => "table_update", "data" => $event->getEventData(), "action" => $event->getAction()]);

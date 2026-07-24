@@ -17,6 +17,7 @@ use App\Game\WebSocket\ConnectionWrapper;
 
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 class Player implements EventSubscriberInterface
 {
@@ -59,6 +60,7 @@ class Player implements EventSubscriberInterface
         $this->betTotalAmount = null;
     }
 
+    #[Groups(["show_basic_player"])]
     public function getUser(): User
     {
         return $this->user;
@@ -84,9 +86,9 @@ class Player implements EventSubscriberInterface
      * @param mixed $data Data to send, needs to be serializable
      * @return bool|null
      */
-    public function sendMessage(mixed $data): bool|null
+    public function sendMessage(mixed $data, array $context = []): bool|null
     {
-        return $this->connection->sendJson($data);
+        return $this->connection->sendJson($data, $context);
     }
 
     public function pushCard(Card $card): void
@@ -144,6 +146,7 @@ class Player implements EventSubscriberInterface
         $this->betTotalAmount = $amount;
     }
 
+    #[Groups(["show_basic_player"])]
     public function getBetTotalAmount(): ?int
     {
         return $this->betTotalAmount;
@@ -155,6 +158,12 @@ class Player implements EventSubscriberInterface
         $this->bankroll->setAmount($amount);
     }
 
+    public function addBankroll(int $amount): void
+    {
+        $this->bankroll->setAmount($this->bankroll->getAmount() + $amount);
+    }
+
+    #[Groups(["show_basic_player"])]
     public function getBankroll(): int
     {
         return $this->bankroll->getAmount();
