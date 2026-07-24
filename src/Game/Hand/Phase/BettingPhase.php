@@ -55,6 +55,8 @@ class BettingPhase extends AbstractPhase
 
         $this->context = $context;
         $this->bettingManager = $context->getBettingManager();
+        // We have to reset BettingManager state too
+        $this->bettingManager->resetState();
 
         $this->askPlayer($players[$this->currentPlayerIndex]);
     }
