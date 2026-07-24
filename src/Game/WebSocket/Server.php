@@ -327,13 +327,6 @@ class Server
             throw new TableException("Table does not exist");
         }
 
-        // TODO: Use real rules for game start
-        if ($action === "startGame") {
-            $table->start();
-            $connection->send(json_encode(["table_started" => true]));
-            return;
-        }
-
         if ($action === "playerJoin") {
             if (empty($data["buy_in"]) || !\is_int($data["buy_in"])) {
                 throw new Exception("Buy in is required to enter a table");
