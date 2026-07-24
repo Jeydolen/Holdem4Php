@@ -33,13 +33,15 @@ class ShowdownPhase extends AbstractPhase
         $pots = $bettingManager->computePots($playerCollection->getAllPlayers(), $playerCollection->getFoldedPlayerIds());
         foreach ($pots as $pot) {
             $amount = $pot->getAmount();
-            $eligiblePlayers = $pot->getCompetingPlayers();
+            $eligiblePlayers = array_map(fn($p) => $p->getUserId(), $pot->getCompetingPlayers());
             if ($amount === 0 || empty($eligiblePlayers)) {
                 continue;
             }
 
+            $this->logger->info("Eligible players for this pot", ["players" => $eligiblePlayers, "amount" => $amount]);
+
             if (\count($eligiblePlayers) === 1) {
-                $winnerId = $eligiblePlayers[0]->getUserId();
+                $winnerId = $eligiblePlayers[0];
                 $this->awardPot($winnerId, $amount, $playerHandStrength[$winnerId]);
                 continue;
             }
