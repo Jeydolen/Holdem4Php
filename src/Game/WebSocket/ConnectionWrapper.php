@@ -31,9 +31,9 @@ class ConnectionWrapper
         return $this->server->push($this->fd, $sendBuffer);
     }
 
-    public function sendJson(mixed $data): bool|null
+    public function sendJson(mixed $data, array $context = []): bool|null
     {
-        $json = $this->serializer->serialize($data, "json");
+        $json = $this->serializer->serialize($data, "json", $context);
         return $this->send($json);
     }
 
