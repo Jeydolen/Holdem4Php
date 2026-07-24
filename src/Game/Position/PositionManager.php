@@ -81,10 +81,9 @@ class PositionManager
             foreach ($this->players as $player_by_position) {
                 $position = $player_by_position[0];
                 $player = $player_by_position[1];
-
                 $players[$position] = $player;
             }
-
+            ksort($players);
             return \array_values($players);
         }
 
