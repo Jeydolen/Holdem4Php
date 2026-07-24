@@ -31,7 +31,7 @@ class PositionManagerTest extends TestCase
 
     private function makeManager(array $players = []): PositionManager
     {
-        return new PositionManager($players, $this->logger);
+        return new PositionManager(1000, $players, $this->logger);
     }
 
     private function makePlayer(string $id): Player&Stub
@@ -47,7 +47,7 @@ class PositionManagerTest extends TestCase
         $p1 = $this->makePlayer("p1");
         $p2 = $this->makePlayer("p2");
 
-        $this->positionManager = new PositionManager([$p1, $p2], $this->logger);
+        $this->positionManager = new PositionManager(1000, [$p1, $p2], $this->logger);
         // We should have ["p1" => [0, "p1"], "p2" => [1, "p2"]]
         $this->assertArraysHaveEqualValues([
             $p1->getUserId() => [0, $p1],
@@ -82,7 +82,7 @@ class PositionManagerTest extends TestCase
         $p1 = $this->makePlayer("p1");
         $p2 = $this->makePlayer("p2");
 
-        $this->positionManager = new PositionManager([$p1, $p2], $this->logger);
+        $this->positionManager = new PositionManager(10, [$p1, $p2], $this->logger);
 
         $this->positionManager->removePlayer($p1);
 
@@ -114,44 +114,61 @@ class PositionManagerTest extends TestCase
         $this->assertCount(500, $this->positionManager->getRawPlayers());
     }
 
-    public function testShiftPositionShiftPlayersCorrectly(): void
+    public function testShiftButtonShiftPlayersCorrectly(): void
     {
         $p1 = $this->makePlayer("p1");
         $p2 = $this->makePlayer("p2");
 
-        $this->positionManager = new PositionManager([$p1, $p2], $this->logger);
-
-        $this->positionManager->shiftPositions(1);
+        $this->positionManager = new PositionManager(10, [$p1, $p2], $this->logger);
+        $this->positionManager->shiftButton(1);
         $this->assertArraysHaveIdenticalValuesIgnoringOrder([
-            $p2->getUserId() => [0, $p2],
-            $p1->getUserId() => [1, $p1],
-        ], $this->positionManager->getRawPlayers());
+            $p2->getUserId(),
+            $p1->getUserId(),
+        ], array_map(fn($p) => $p->getUserId(), $this->positionManager->getPlayers(true)));
     }
 
-    public function testShiftPositionShiftPlayersCorrectlyWithALotOfPlayers(): void
+    public function testGetPlayersReturnPlayersOrderedByPosition(): void
     {
-        $shift = 2;
-        $limit = 1000;
+        $p1 = $this->makePlayer("p1");
+        $p2 = $this->makePlayer("p2");
+
+        $this->positionManager = new PositionManager(2, [$p1, $p2], $this->logger);
+
+        $this->assertArraysAreIdentical(["p1", "p2"], array_map(fn($p) => $p->getUserId(), $this->positionManager->getPlayers()));
+
+        // Position should be inverted here
+        $this->positionManager->shiftButton(1);
+
+        $this->assertArraysAreIdentical(["p2", "p1"], array_map(fn($p) => $p->getUserId(), $this->positionManager->getPlayers()));
+    }
+
+    public function testGetPlayersReturnPlayersCorrectlyWithNotAllPositionsFilled(): void
+    {
+        $limit = 10;
         $players = [];
         for ($i = 0; $i < $limit; $i++) {
             $player = $this->makePlayer("p" . $i);
-            $this->positionManager->addPlayer($player);
             $players[] = $player;
         }
+        $this->positionManager = new PositionManager($limit, $players, $this->logger);
 
-        $raw_players = $this->positionManager->getRawPlayers();
-        $this->assertCount(1000, $raw_players);
-
-        // If we shift 2 positions, all postions should be n + 2 except for the 2 last
-        // which should be 0 and 1
-        $this->positionManager->shiftPositions($shift);
-        $raw_players = array_values($this->positionManager->getRawPlayers());
-        foreach ($raw_players as $i => $position_per_player) {
-            $expected_position = $i + $shift;
-            if ($expected_position >= \count($raw_players)) {
-                $expected_position = $expected_position - \count($players);
+        // We remove half players
+        $expected_result = [];
+        foreach ($players as $i => $player) {
+            if ($i % 2 === 0) {
+                $expected_result[] = $player->getUserId();
+                continue;
             }
-            $this->assertArraysHaveIdenticalValuesIgnoringOrder([$expected_position, $players[$i]], $raw_players[$i]);
+            $this->positionManager->removePlayer($player);
         }
+
+        $this->assertArraysAreIdentical($expected_result, array_map(fn($p) => $p->getUserId(), $this->positionManager->getPlayers()));
+        $this->positionManager->shiftButton(2);
+        // p4 and p6 should be the 2 first and p2 should be the last one
+        $ordered_players = array_map(fn($p) => $p->getUserId(), $this->positionManager->getPlayers());
+        // dd($ordered_players, $expected_result);
+        $this->assertEquals("p4", $ordered_players[0]);
+        $this->assertEquals("p6", $ordered_players[1]);
+        $this->assertEquals("p2", $ordered_players[4]);
     }
 }

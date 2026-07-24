@@ -79,7 +79,7 @@ class Table implements EventSubscriberInterface
         $this->phases = $phases;
         $this->stake = $entityTable->getStake();
 
-        $this->positionManager = new PositionManager([], $this->logger);
+        $this->positionManager = new PositionManager($entityTable->getVariant()->getMaxPlayers(), [], $this->logger);
 
         $this->updateTableState(TableStateEnum::WAITING_FOR_PLAYERS);
 
@@ -270,6 +270,9 @@ class Table implements EventSubscriberInterface
 
         // Save previous hand in db for the history
         // $this->currentHand;
+
+        // Reorder players
+        $this->positionManager->shiftButton(1);
         $players = $this->positionManager->getPlayers();
         foreach ($players as $player) {
             $player->resetState();
@@ -364,7 +367,7 @@ class Table implements EventSubscriberInterface
             if ($this->entityTable->getVariant()->getTableType() === TableTypeEnum::CASH_GAME->value) {
                 $this->updateTableState(TableStateEnum::WAITING_FOR_PLAYERS);
                 // If we don't evaluate status, nothing happens until a player join / quit
-                // $this->evaluateTableStatus();
+                $this->evaluateTableStatus();
             } else {
                 $this->updateTableState(TableStateEnum::FINISHED);
             }

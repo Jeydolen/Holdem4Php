@@ -4,6 +4,7 @@ namespace App\Game\Position;
 
 use App\Game\Player\Player;
 use App\Game\Table\Exception\PlayerAlreadyInGameException;
+use App\Game\Table\Exception\TableException;
 use Psr\Log\LoggerInterface;
 
 class PositionManager
@@ -17,12 +18,17 @@ class PositionManager
      */
     private array $players;
 
+    private int $buttonPosition = 0;
+
     /**
      * PlayerManager constructor
      * @param Player[] $base_players
      */
-    public function __construct(array $base_players, private LoggerInterface $logger)
-    {
+    public function __construct(
+        private int $maxSeatCount,
+        array $base_players,
+        private LoggerInterface $logger
+    ) {
         $this->players = [];
         foreach (array_values($base_players) as $i => $player) {
             $this->players[$player->getUserId()] = [$i, $player];
@@ -77,14 +83,15 @@ class PositionManager
     public function getPlayers(bool $ordered = true): array
     {
         if ($ordered) {
-            $players = [];
-            foreach ($this->players as $player_by_position) {
-                $position = $player_by_position[0];
-                $player = $player_by_position[1];
-                $players[$position] = $player;
-            }
-            ksort($players);
-            return \array_values($players);
+            $players = $this->players;
+            uasort($players, function ($a, $b) {
+                $pa = ($a[0] - $this->buttonPosition + $this->maxSeatCount) % $this->maxSeatCount;
+                $pb = ($b[0] - $this->buttonPosition + $this->maxSeatCount) % $this->maxSeatCount;
+
+                // https://stackoverflow.com/questions/47466358/what-is-the-spaceship-three-way-comparison-operator-in-c
+                return $pa <=> $pb;
+            });
+            return \array_values(\array_map(fn($p) => $p[1], $players));
         }
 
         return array_map(fn($a) => $a[1], $this->players);
@@ -95,30 +102,28 @@ class PositionManager
         return $this->players;
     }
 
-    /**
-     * Shift player positions by n. Mutates internal structure
-     * @param int $shift
-     * @return void
-     */
-    public function shiftPositions(int $shift): void
+    public function nextOccupiedSeat(int $seat): int
     {
-        $new_players = [];
-        // Players in the end of the table have to be reset to 0 instead of + 1
-        // Because if we just add 1, nobody will be on the button position
-        $count = $this->getPlayerCount();
-        foreach ($this->players as $k => $player_by_position) {
-            $position = $player_by_position[0];
-            $player = $player_by_position[1];
+        $current = $seat;
 
-            $new_position = $position + $shift;
-            if ($new_position >= $count) {
-                $new_position = $new_position - $count;
+        do {
+            $current = ($current + 1) % $this->maxSeatCount;
+
+            foreach ($this->players as [$position]) {
+                if ($position === $current) {
+                    return $current;
+                }
             }
+        } while ($current !== $seat);
 
-            $new_players[$k] = [$new_position, $player];
+        throw new TableException('No players on table');
+    }
+
+    public function shiftButton(int $shift): void
+    {
+        for ($i = 0; $i < $shift; $i++) {
+            $this->buttonPosition = $this->nextOccupiedSeat($this->buttonPosition);
         }
-
-        $this->players = $new_players;
     }
 
     public function getPlayerCount(): int
