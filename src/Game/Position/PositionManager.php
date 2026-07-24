@@ -91,6 +91,11 @@ class PositionManager
         return array_map(fn($a) => $a[1], $this->players);
     }
 
+    public function getRawPlayers(): array
+    {
+        return $this->players;
+    }
+
     /**
      * Shift player positions by n. Mutates internal structure
      * @param int $shift
@@ -99,11 +104,19 @@ class PositionManager
     public function shiftPositions(int $shift): void
     {
         $new_players = [];
+        // Players in the end of the table have to be reset to 0 instead of + 1
+        // Because if we just add 1, nobody will be on the button position
+        $count = $this->getPlayerCount();
         foreach ($this->players as $k => $player_by_position) {
             $position = $player_by_position[0];
             $player = $player_by_position[1];
 
-            $new_players[$k] = [$position + $shift, $player];
+            $new_position = $position + $shift;
+            if ($new_position >= $count) {
+                $new_position = $new_position - $count;
+            }
+
+            $new_players[$k] = [$new_position, $player];
         }
 
         $this->players = $new_players;
