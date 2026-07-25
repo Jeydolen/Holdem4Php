@@ -21,20 +21,21 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 #[UniqueEntity(fields: ['username'], message: 'There is already an account with this username')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface, PasswordUpgraderInterface
 {
-    #[Groups(["show_basic_user"])]
+    #[Groups(["show_basic_user", "show_full_user"])]
     #[ORM\Id]
     #[ORM\Column(name: "user_id", type: 'uuid', unique: true)]
     #[ORM\GeneratedValue(strategy: 'CUSTOM')]
     #[ORM\CustomIdGenerator('doctrine.uuid_generator')]
     private ?Uuid $user_id = null;
 
-    #[Groups(["show_basic_user"])]
+    #[Groups(["show_basic_user", "show_full_user"])]
     #[ORM\Column(length: 180)]
     private ?string $username = null;
 
     /**
      * @var list<string> The user roles
      */
+    #[Groups(["show_full_user"])]
     #[ORM\Column]
     private array $roles = [];
 
@@ -144,6 +145,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Passwor
     {
     }
 
+    #[Groups(["show_full_user"])]
     public function getBankroll(): ?Bankroll
     {
         return $this->bankroll;

@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\BankrollRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 
 #[ORM\Entity(repositoryClass: BankrollRepository::class)]
 class Bankroll
@@ -25,6 +26,8 @@ class Bankroll
         return $this->bankroll_id;
     }
 
+
+    #[Groups(["show_bankroll"])]
     public function getAmount(): ?int
     {
         return $this->amount;
