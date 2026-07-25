@@ -55,11 +55,11 @@ class BettingManagerTest extends TestCase
         $this->assertSame(200, $manager->getPotAmount());
     }
 
-    public function testInitialMinimalLegalBetIsZero(): void
+    public function testInitialMinimalLegalBetIsOne(): void
     {
         $manager = $this->makeManager();
 
-        $this->assertSame(0, $manager->getMinimalLegalBet());
+        $this->assertSame(1, $manager->getMinimalLegalBet());
     }
 
     public function testLegalActionsBeforeAnyBetIncludeCheckFoldAndBet(): void
@@ -80,7 +80,7 @@ class BettingManagerTest extends TestCase
         $this->assertNotContains(PlayerBettingActionEnum::CALL, $actions);
     }
 
-    public function testLegalActionsAfterBetIncludeCallFoldAndBet(): void
+    public function testLegalActionsAfterBetIncludeCallFoldAndRaise(): void
     {
         $manager = $this->makeManager();
         $manager->play("p1", PlayerBettingActionEnum::BET, 50);
@@ -88,7 +88,7 @@ class BettingManagerTest extends TestCase
 
         $this->assertContains(PlayerBettingActionEnum::CALL, $actions);
         $this->assertContains(PlayerBettingActionEnum::FOLD, $actions);
-        $this->assertContains(PlayerBettingActionEnum::BET, $actions);
+        $this->assertContains(PlayerBettingActionEnum::RAISE, $actions);
     }
 
     public function testLegalActionsAfterBetDoNotIncludeCheck(): void
@@ -293,10 +293,10 @@ class BettingManagerTest extends TestCase
     {
         $manager = $this->makeManager();
         $manager->play("p1", PlayerBettingActionEnum::BET, 50);
-        $manager->play("p2", PlayerBettingActionEnum::BET, 100);
+        $manager->play("p2", PlayerBettingActionEnum::RAISE, 100);
         $manager->play("p3", PlayerBettingActionEnum::CALL, 100);
 
-        $this->assertSame(250, $manager->getPotAmount());
+        $this->assertSame(200, $manager->getPotAmount());
     }
 
     public function testInitialPotIsIncludedInTotal(): void
