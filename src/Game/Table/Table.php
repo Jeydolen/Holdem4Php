@@ -102,6 +102,8 @@ class Table implements EventSubscriberInterface
         $this->logger->info("Updating table state", ["old_table_state" => $this->tableState?->name ?? null, "new_table_state" => $newTableState->name]);
         $this->tableState = $newTableState;
 
+        $this->broadcastJson(["table_current_state" => $newTableState->name]);
+
         $this->entityTable->setTableStatus($newTableState->name);
         $this->em->flush();
     }
