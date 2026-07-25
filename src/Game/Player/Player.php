@@ -163,6 +163,11 @@ class Player implements EventSubscriberInterface
         $this->bankroll->setAmount($this->bankroll->getAmount() + $amount);
     }
 
+    public function removeBankroll(int $amount): void
+    {
+        $this->bankroll->setAmount($this->bankroll->getAmount() - $amount);
+    }
+
     #[Groups(["show_basic_player"])]
     public function getBankroll(): int
     {

@@ -180,6 +180,8 @@ class BettingPhase extends AbstractPhase
         // We have to set the bet total amount when it is a notable action OR Call
         if ($isNewBettingRound || $player_betting_action === PlayerBettingActionEnum::CALL) {
             $player->setBetTotalAmount($player->getBetTotalAmount() + ($data["betting_amount"] ?? 0));
+            // Don't forget to remove player bankroll
+            $player->removeBankroll(($data["betting_amount"] ?? 0));
             $this->dispatcher->dispatch(new PhaseState("pot_amount", ["pot_amount" => $this->bettingManager->getPotAmount()]));
         }
 
