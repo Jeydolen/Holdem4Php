@@ -95,9 +95,6 @@ class PokerHand
 
     private function sendPokerHandEndSignal(): void
     {
-        // We have to distribute the pots to the competing players
-        $playerCollection = $this->handContext->getPlayerCollection();
-
         $this->dispatcher->dispatch(new PhaseState("no_more_phases"));
     }
 
