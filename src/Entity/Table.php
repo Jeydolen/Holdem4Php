@@ -44,7 +44,7 @@ class Table
     private ?\DateTimeImmutable $created_at = null;
 
     #[Groups("show_table_stake")]
-    #[ORM\OneToOne(cascade: ['persist', 'remove'])]
+    #[ORM\ManyToOne(cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(nullable: false)]
     private ?Stake $stake = null;
 
