@@ -4,7 +4,7 @@ namespace App\Enum;
 
 enum DeckGenerationTypeEnum: string
 {
-    case AUTOMATIC = "automatic";
+    case AUTOMATIC = "AUTOMATIC";
 
-    case MANUAL = "manual";
+    case MANUAL = "MANUAL";
 }
