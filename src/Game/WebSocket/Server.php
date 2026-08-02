@@ -147,7 +147,7 @@ class Server
     public function loadTables(): int
     {
         $this->logger->info("Loading table rules");
-        $variants = $this->variantRepository->findAll();
+        $variants = $this->variantRepository->findAllVariantsOrderedByPhasePriority();
         $this->logger->info("Table rules count", ["rules_count" => \sizeof($variants)]);
         $table_count = 0;
 
