@@ -31,7 +31,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 #[Route("/admin/game")]
 final class GameController extends AbstractController
 {
-    public function __construct(private EntityManagerInterface $em)
+    public function __construct(private EntityManagerInterface $em, private VariantRepository $variantRepository)
     {
     }
 
@@ -114,7 +114,7 @@ final class GameController extends AbstractController
     #[Route("/get_all_variants", methods: ["GET"])]
     public function getAllVariants(): JsonResponse
     {
-        $variants = $this->em->getRepository(Variant::class)->findAll();
+        $variants = $this->variantRepository->findAll();
         return $this->json(["variants" => $variants], context: [
             "groups" => [
                 "show_variant",
@@ -128,7 +128,7 @@ final class GameController extends AbstractController
     #[Route("/get_variant/{id}", methods: ["GET"])]
     public function getVariant(int $id): JsonResponse
     {
-        $variant = $this->em->getRepository(Variant::class)->findOneBy(["variant_id" => $id]);
+        $variant = $this->variantRepository->findOneBy(["variant_id" => $id]);
 
         if (empty($variant)) {
             throw $this->createNotFoundException();
