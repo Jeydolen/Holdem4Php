@@ -2,6 +2,8 @@
 
 namespace App\Game\Hand\Phase;
 
+use App\Entity\Stake;
+use App\Entity\Variant;
 use Exception;
 use Psr\Log\LoggerInterface;
 
@@ -19,7 +21,7 @@ class PhaseFactory
         "showdown_phase" => ShowdownPhase::class,
     ];
 
-    public function create(string $type, ?int $timeout, array $data): IPhase
+    public function create(string $type, ?int $timeout, array $data, Variant $variant, Stake $stake): IPhase
     {
         if (empty(self::$map[$type])) {
             throw new Exception("Unknown phase: $type");
@@ -28,6 +30,8 @@ class PhaseFactory
         // There might be a better way to do this...
         $data["logger"] = $this->logger;
         $data["timeout"] = $timeout;
+        $data["minBuyIn"] = $stake->getMinBuyIn();
+        $data["maxBuyIn"] = $stake->getMaxBuyIn();
 
         $class = self::$map[$type];
         return $class::fromArray($data);

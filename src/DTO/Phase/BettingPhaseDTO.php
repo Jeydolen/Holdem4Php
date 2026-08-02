@@ -7,7 +7,6 @@ use Symfony\Component\Validator\Constraints\Positive;
 
 class BettingPhaseDTO extends PhaseDTO
 {
-    #[NotBlank()]
     #[Positive()]
     public int $maxBettingAmount;
 

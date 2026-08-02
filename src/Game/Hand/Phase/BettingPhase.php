@@ -118,7 +118,7 @@ class BettingPhase extends AbstractPhase
 
     public static function fromArray(array $data): self
     {
-        $instance = new self($data["logger"], $data["timeout"] ?? null, $data["maxBettingAmount"]);
+        $instance = new self($data["logger"], $data["timeout"] ?? null, $data["maxBettingAmount"] ?? $data["maxBuyIn"]);
         return $instance;
     }
 

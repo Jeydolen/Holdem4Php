@@ -179,7 +179,9 @@ class Server
             $game_phase = $this->phaseFactory->create(
                 $phase->getType(),
                 $phase->getTimeout(),
-                $phase->getAdditionnalProperties()
+                $phase->getAdditionnalProperties(),
+                $variant,
+                $stake
             );
 
             $this->logger->info("Game phase created");
