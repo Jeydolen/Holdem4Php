@@ -125,7 +125,7 @@ final class GameController extends AbstractController
         ]);
     }
 
-    #[Route("/get_variant/{id}", methods: ["DELETE"])]
+    #[Route("/get_variant/{id}", methods: ["GET"])]
     public function getVariant(int $id): JsonResponse
     {
         $variant = $this->em->getRepository(Variant::class)->findOneBy(["variant_id" => $id]);
