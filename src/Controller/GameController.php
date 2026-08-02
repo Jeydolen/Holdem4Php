@@ -18,6 +18,7 @@ use App\Entity\VariantCards;
 use App\Entity\VariantPhases;
 
 use App\Repository\UserRepository;
+use App\Repository\VariantRepository;
 
 use App\Game\CardPile\DeckFactory;
 
@@ -38,11 +39,27 @@ final class GameController extends AbstractController
     #[Route("/create_variant", methods: ["POST"])]
     public function createVariant(#[MapRequestPayload()] VariantDTO $variantDTO): JsonResponse
     {
+        try {
+            $this->em->beginTransaction();
+            $variant = new Variant();
+            $this->setVariantEntity($variantDTO, $variant);
+
+            $this->em->flush();
+            $this->em->commit();
+        } catch (Exception $e) {
+            $this->em->rollback();
+            throw $e;
+        }
+
+        return $this->json(["variant" => $variant,], context: ["groups" => ["show_extended_rule", "show_phase", "show_card"]]);
+    }
+
+    private function setVariantEntity(VariantDTO $variantDTO, Variant $variant): Variant
+    {
         if ($variantDTO->minBuyIn > $variantDTO->maxBuyIn) {
             throw new Exception("Minimum buy in can't exceed maximum buy in");
         }
 
-        $variant = new Variant();
         $variant->setMaxPlayers($variantDTO->maxPlayers);
         $variant->setTableType($variantDTO->tableType->value);
         $variant->setBettingType($variantDTO->bettingType->value);
@@ -87,8 +104,7 @@ final class GameController extends AbstractController
             $this->em->persist($variantCard);
         }
 
-        $this->em->flush();
-        return $this->json(["variant" => $variant,], context: ["groups" => ["show_extended_rule", "show_phase", "show_card"]]);
+        return $variant;
     }
 
     private function getAdditionnalProperties(object $object, object|string $baseObject): array
@@ -148,7 +164,7 @@ final class GameController extends AbstractController
     #[Route("/delete_variant/{id}", methods: ["DELETE"])]
     public function deleteVariant(int $id): JsonResponse
     {
-        $variant = $this->em->getRepository(Variant::class)->findOneBy(["variant_id" => $id]);
+        $variant = $this->variantRepository->findOneBy(["variant_id" => $id]);
 
         if (empty($variant)) {
             throw $this->createNotFoundException();
@@ -160,6 +176,28 @@ final class GameController extends AbstractController
         return $this->json(["removed" => true, "variant_id" => $id]);
     }
 
+    #[Route("/update_variant/{id}", methods: ["POST"])]
+    public function updateVariant(int $id, #[MapRequestPayload()] VariantDTO $variantDTO): JsonResponse
+    {
+        $variant = $this->variantRepository->findOneBy(["variant_id" => $id]);
+
+        if (empty($variant)) {
+            throw $this->createNotFoundException();
+        }
+
+        try {
+            $this->em->beginTransaction();
+            $this->setVariantEntity($variantDTO, $variant);
+
+            $this->em->flush();
+            $this->em->commit();
+        } catch (Exception $e) {
+            $this->em->rollback();
+            throw $e;
+        }
+
+        return $this->json(["variant" => $variant,], context: ["groups" => ["show_extended_rule", "show_phase", "show_card"]]);
+    }
 
     #[Route("/add_bankroll/{uuid}/{amount}", methods: ["GET"])]
     public function addBankroll(UserRepository $userRepository, string $uuid, int $amount): JsonResponse
