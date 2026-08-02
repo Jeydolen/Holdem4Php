@@ -125,6 +125,25 @@ final class GameController extends AbstractController
         ]);
     }
 
+    #[Route("/get_variant/{id}", methods: ["DELETE"])]
+    public function getVariant(int $id): JsonResponse
+    {
+        $variant = $this->em->getRepository(Variant::class)->findOneBy(["variant_id" => $id]);
+
+        if (empty($variant)) {
+            throw $this->createNotFoundException();
+        }
+
+        return $this->json(["variant" => $variant], context: [
+            "groups" => [
+                "show_variant",
+                "show_phase",
+                "show_stake",
+                "show_card"
+            ]
+        ]);
+    }
+
 
     #[Route("/delete_variant/{id}", methods: ["DELETE"])]
     public function deleteVariant(int $id): JsonResponse
