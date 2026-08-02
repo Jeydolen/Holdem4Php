@@ -20,10 +20,10 @@ class DeckGenerationDTO
 
     /**
      * Array of cards if generation_type = manual
-     * @var CardDTO[] $cards
+     * @var CardDTO[]|null $cards
      */
     #[Type([CardDTO::class])]
-    public array $cards;
+    public ?array $cards = null;
 
     public CardRangeGenerationDTO $cardGenerationConfig;
 }
