@@ -14,6 +14,7 @@ use Symfony\Component\Serializer\Attribute\DiscriminatorMap;
         "shuffle_deck_phase" => ShuffleDeckPhaseDTO::class,
         "draw_board_card_phase" => DrawBoardCardPhaseDTO::class,
         "showdown_phase" => ShowdownPhaseDTO::class,
+        "ask_blind_phase" => AskBlindPhaseDTO::class,
     ]
 )]
 abstract class PhaseDTO

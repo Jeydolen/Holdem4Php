@@ -2,9 +2,11 @@
 
 namespace App\Game\Hand\Phase;
 
+use Exception;
+
 use App\Entity\Stake;
 use App\Entity\Variant;
-use Exception;
+
 use Psr\Log\LoggerInterface;
 
 class PhaseFactory
@@ -19,6 +21,7 @@ class PhaseFactory
         "shuffle_deck_phase" => ShuffleDeckPhase::class,
         "draw_board_card_phase" => DrawBoardCardPhase::class,
         "showdown_phase" => ShowdownPhase::class,
+        "ask_blind_phase" => AskBlindPhase::class,
     ];
 
     public function create(string $type, ?int $timeout, array $data, Variant $variant, Stake $stake): IPhase
