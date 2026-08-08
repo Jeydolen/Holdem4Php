@@ -3,6 +3,7 @@
 namespace App\Tests\Phase;
 
 
+use App\Entity\User;
 use App\Event\PhaseState;
 
 use App\Game\Bet\BettingManager;
@@ -15,6 +16,8 @@ use App\Game\Hand\Phase\AskBlindPhase;
 
 use App\Game\Player\Player;
 use App\Game\Player\PlayerCollection;
+
+use App\Game\WebSocket\ConnectionWrapper;
 
 use App\Service\CardRank\CardRankEvaluator;
 
@@ -78,13 +81,13 @@ class AskBlindPhaseTest extends TestCase
         return $context;
     }
 
-    private function makePlayer(string $id): Player&MockObject
+    private function makePlayer(string $id): Player
     {
-        $player = $this->createPartialMock(Player::class, ["getUserId", "getPublicState", "sendMessage"]);
-        $player->method("getUserId")->willReturn($id);
+        $fake_user = $this->createMock(User::class);
+        $fake_user->method("getUserId")->willReturn($id);
+        $fake_user->expects($this->atLeastOnce())->method("getUserId");
 
-        // resetState instanciate hole_cards
-        $player->resetState();
+        $player = new Player($fake_user, $this->createStub(ConnectionWrapper::class), $this->logger);
         return $player;
     }
 

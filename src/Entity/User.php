@@ -129,9 +129,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface, Passwor
         return $data;
     }
 
-    public function getUserId(): ?Uuid
+    public function getRawUserId(): ?Uuid
     {
         return $this->user_id;
+    }
+
+    public function getUserId(): ?string
+    {
+        return $this->user_id?->toString() ?? null;
     }
 
     public function setUserId(Uuid $user_id): static

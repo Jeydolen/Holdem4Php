@@ -92,13 +92,14 @@ class DrawCardPhaseTest extends TestCase
         return $context;
     }
 
-    private function makePlayer(string $id): Player&MockObject
+    private function makePlayer(string $id): Player
     {
-        $player = $this->createPartialMock(Player::class, ["getUserId", "getPublicState", "sendMessage"]);
-        $player->method("getUserId")->willReturn($id);
+        $fake_user = $this->createMock(User::class);
+        $fake_user->method("getUserId")->willReturn($id);
+        $fake_user->expects($this->atLeastOnce())->method("getUserId");
 
-        // resetState instanciate hole_cards
-        $player->resetState();
+        $player = new Player($fake_user, $this->createStub(ConnectionWrapper::class), $this->logger);
+
         return $player;
     }
 

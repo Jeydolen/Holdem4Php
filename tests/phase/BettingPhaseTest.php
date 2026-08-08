@@ -185,6 +185,7 @@ class BettingPhaseTest extends TestCase
         $p2 = $this->makeRealPlayer("p2");
 
         $p1->expects($this->exactly(2))->method("askBet");
+        $p2->expects($this->once())->method("askBet");
 
         $phase = $this->makePhase();
         $players = [$p1, $p2];
