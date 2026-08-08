@@ -179,6 +179,9 @@ final class GameController extends AbstractController
     #[Route("/update_variant/{id}", methods: ["POST"])]
     public function updateVariant(int $id, #[MapRequestPayload()] VariantDTO $variantDTO): JsonResponse
     {
+        /**
+         * @var Variant
+         */
         $variant = $this->variantRepository->findOneBy(["variant_id" => $id]);
 
         if (empty($variant)) {
@@ -187,6 +190,11 @@ final class GameController extends AbstractController
 
         try {
             $this->em->beginTransaction();
+
+            // Don't forget to clear previous cards and phases to not duplicate them
+            $variant->getVariantCards()->clear();
+            $variant->getVariantPhases()->clear();
+
             $this->setVariantEntity($variantDTO, $variant);
 
             $this->em->flush();
