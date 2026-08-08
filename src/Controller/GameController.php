@@ -44,6 +44,9 @@ final class GameController extends AbstractController
             $variant = new Variant();
             $this->setVariantEntity($variantDTO, $variant);
 
+            // Add stake
+            $this->addStake($variant, $variantDTO->minBuyIn, $variantDTO->maxBuyIn);
+
             $this->em->flush();
             $this->em->commit();
         } catch (Exception $e) {
@@ -59,18 +62,6 @@ final class GameController extends AbstractController
         if ($variantDTO->minBuyIn > $variantDTO->maxBuyIn) {
             throw new Exception("Minimum buy in can't exceed maximum buy in");
         }
-
-        $variant->setMaxPlayers($variantDTO->maxPlayers);
-        $variant->setTableType($variantDTO->tableType->value);
-        $variant->setBettingType($variantDTO->bettingType->value);
-        $variant->setName($variantDTO->name);
-        $this->em->persist($variant);
-
-        $stake = new Stake();
-        $stake->setMinBuyIn($variantDTO->minBuyIn);
-        $stake->setMaxBuyIn($variantDTO->maxBuyIn);
-        $stake->setVariant($variant);
-        $this->em->persist($stake);
 
         foreach ($variantDTO->phases as $phaseDTO) {
             $phase = new Phase();
@@ -105,6 +96,15 @@ final class GameController extends AbstractController
         }
 
         return $variant;
+    }
+
+    private function addStake(Variant $variant, int $minBuyIn, int $maxBuyIn): void
+    {
+        $stake = new Stake();
+        $stake->setMinBuyIn($minBuyIn);
+        $stake->setMaxBuyIn($maxBuyIn);
+        $stake->setVariant($variant);
+        $this->em->persist($stake);
     }
 
     private function getAdditionnalProperties(object $object, object|string $baseObject): array
