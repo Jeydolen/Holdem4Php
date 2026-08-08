@@ -83,7 +83,7 @@ class BettingManagerTest extends TestCase
     public function testLegalActionsAfterBetIncludeCallFoldAndRaise(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::BET, 50);
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, null);
         $actions = $manager->computeLegalActions();
 
         $this->assertContains(PlayerBettingActionEnum::CALL, $actions);
@@ -94,7 +94,7 @@ class BettingManagerTest extends TestCase
     public function testLegalActionsAfterBetDoNotIncludeCheck(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::BET, 50);
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, null);
         $actions = $manager->computeLegalActions();
 
         $this->assertNotContains(PlayerBettingActionEnum::CHECK, $actions);
@@ -103,8 +103,8 @@ class BettingManagerTest extends TestCase
     public function testLegalActionsAfterCallDoNotIncludeCheck(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::BET, 50);
-        $manager->play("p2", PlayerBettingActionEnum::CALL, 50);
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, null);
+        $manager->play("p2", PlayerBettingActionEnum::CALL, 50, null);
         $actions = $manager->computeLegalActions();
 
         $this->assertNotContains(PlayerBettingActionEnum::CHECK, $actions);
@@ -114,7 +114,7 @@ class BettingManagerTest extends TestCase
     {
         $manager = $this->makeManager();
 
-        $manager->play("p1", PlayerBettingActionEnum::CHECK, null);
+        $manager->play("p1", PlayerBettingActionEnum::CHECK, null, null);
 
         $this->assertSame(0, $manager->getPotAmount());
     }
@@ -122,7 +122,7 @@ class BettingManagerTest extends TestCase
     public function testCheckDispatchesBettingActionEvent(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::CHECK, null);
+        $manager->play("p1", PlayerBettingActionEnum::CHECK, null, null);
 
         $this->assertContains("player_betting_action", $this->dispatchedActions);
     }
@@ -130,7 +130,7 @@ class BettingManagerTest extends TestCase
     public function testCheckDispatchesEventWithCorrectData(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::CHECK, null);
+        $manager->play("p1", PlayerBettingActionEnum::CHECK, null, null);
 
         $event = $this->findDispatchedEvent("player_betting_action");
         $this->assertSame("p1", $event['data']['player_id']);
@@ -140,16 +140,16 @@ class BettingManagerTest extends TestCase
     public function testCheckAfterBetThrows(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::BET, 50);
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, null);
 
         $this->expectException(InvalidPlayerBettingActionException::class);
-        $manager->play("p2", PlayerBettingActionEnum::CHECK, null);
+        $manager->play("p2", PlayerBettingActionEnum::CHECK, null, null);
     }
 
     public function testBetAddsToPot(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::BET, 50);
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, null);
 
         $this->assertSame(50, $manager->getPotAmount());
     }
@@ -157,7 +157,7 @@ class BettingManagerTest extends TestCase
     public function testBetUpdatesMinimalLegalBet(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::BET, 75);
+        $manager->play("p1", PlayerBettingActionEnum::BET, 75, null);
 
         $this->assertSame(75, $manager->getMinimalLegalBet());
     }
@@ -167,22 +167,22 @@ class BettingManagerTest extends TestCase
         $manager = $this->makeManager();
 
         $this->expectException(InvalidPlayerBettingActionException::class);
-        $manager->play("p1", PlayerBettingActionEnum::BET, null);
+        $manager->play("p1", PlayerBettingActionEnum::BET, null, null);
     }
 
     public function testBetBelowMinimalLegalBetThrows(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::BET, 50);
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, 0);
 
         $this->expectException(InvalidPlayerBettingActionException::class);
-        $manager->play("p2", PlayerBettingActionEnum::BET, 10);
+        $manager->play("p2", PlayerBettingActionEnum::BET, 10, 0);
     }
 
     public function testBetDispatchesBettingActionEvent(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::BET, 50);
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, 0);
 
         $this->assertContains("player_betting_action", $this->dispatchedActions);
     }
@@ -190,7 +190,7 @@ class BettingManagerTest extends TestCase
     public function testBetDispatchesEventWithCorrectData(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::BET, 50);
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, 0);
 
         $event = $this->findDispatchedEvent("player_betting_action");
         $this->assertSame("p1", $event['data']['player_id']);
@@ -200,8 +200,8 @@ class BettingManagerTest extends TestCase
     public function testCallAddsToPot(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::BET, 50);
-        $manager->play("p2", PlayerBettingActionEnum::CALL, 50);
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, 0);
+        $manager->play("p2", PlayerBettingActionEnum::CALL, 50, 0);
 
         $this->assertSame(100, $manager->getPotAmount());
     }
@@ -211,32 +211,32 @@ class BettingManagerTest extends TestCase
         $manager = $this->makeManager();
 
         $this->expectException(InvalidPlayerBettingActionException::class);
-        $manager->play("p1", PlayerBettingActionEnum::CALL, 50);
+        $manager->play("p1", PlayerBettingActionEnum::CALL, 50, 50);
     }
 
     public function testCallBelowMinimalLegalBetThrows(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::BET, 50);
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, 0);
 
         $this->expectException(InvalidPlayerBettingActionException::class);
-        $manager->play("p2", PlayerBettingActionEnum::CALL, 10);
+        $manager->play("p2", PlayerBettingActionEnum::CALL, 10, 40);
     }
 
     public function testCallWithoutAmountThrows(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::BET, 50);
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, null);
 
         $this->expectException(InvalidPlayerBettingActionException::class);
-        $manager->play("p2", PlayerBettingActionEnum::CALL, null);
+        $manager->play("p2", PlayerBettingActionEnum::CALL, null, null);
     }
 
     public function testCallDispatchesBettingActionEvent(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::BET, 50);
-        $manager->play("p2", PlayerBettingActionEnum::CALL, 50);
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, 0);
+        $manager->play("p2", PlayerBettingActionEnum::CALL, 50, null);
 
         // The last dispatched event should be from the CALL
         $event = $this->findLastDispatchedEvent("player_betting_action");
@@ -246,8 +246,8 @@ class BettingManagerTest extends TestCase
     public function testCallDispatchesEventWithCorrectData(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::BET, 50);
-        $manager->play("p2", PlayerBettingActionEnum::CALL, 50);
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, 0);
+        $manager->play("p2", PlayerBettingActionEnum::CALL, 50, 0);
 
         $event = $this->findLastDispatchedEvent("player_betting_action");
         $this->assertSame("p2", $event['data']['player_id']);
@@ -257,7 +257,7 @@ class BettingManagerTest extends TestCase
     public function testFoldDispatchesPlayerFoldEvent(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::FOLD, null);
+        $manager->play("p1", PlayerBettingActionEnum::FOLD, null, null);
 
         $this->assertContains("player_fold", $this->dispatchedActions);
     }
@@ -267,7 +267,7 @@ class BettingManagerTest extends TestCase
         $playerId = "p42";
 
         $manager = $this->makeManager();
-        $manager->play($playerId, PlayerBettingActionEnum::FOLD, null);
+        $manager->play($playerId, PlayerBettingActionEnum::FOLD, null, null);
 
         $event = $this->findDispatchedEvent("player_fold");
         $this->assertSame(["player_id" => $playerId], $event['data']);
@@ -276,7 +276,7 @@ class BettingManagerTest extends TestCase
     public function testFoldDoesNotChangePot(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::FOLD, null);
+        $manager->play("p1", PlayerBettingActionEnum::FOLD, null, null);
 
         $this->assertSame(0, $manager->getPotAmount());
     }
@@ -285,24 +285,58 @@ class BettingManagerTest extends TestCase
     {
         $manager = $this->makeManager();
 
-        $manager->play("p1", PlayerBettingActionEnum::FOLD, null);
+        $manager->play("p1", PlayerBettingActionEnum::FOLD, null, null);
         $this->assertContains("player_fold", $this->dispatchedActions);
     }
 
     public function testPotAccumulatesAcrossMultipleBets(): void
     {
         $manager = $this->makeManager();
-        $manager->play("p1", PlayerBettingActionEnum::BET, 50);
-        $manager->play("p2", PlayerBettingActionEnum::RAISE, 100);
-        $manager->play("p3", PlayerBettingActionEnum::CALL, 100);
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, 0);
+        $manager->play("p2", PlayerBettingActionEnum::RAISE, 100, 0);
+        $manager->play("p3", PlayerBettingActionEnum::CALL, 100, 0);
+        $manager->play("p1", PlayerBettingActionEnum::CALL, 100, 50);
 
-        $this->assertSame(200, $manager->getPotAmount());
+        $this->assertSame(300, $manager->getPotAmount());
+    }
+
+    public function testReRaiseShouldThrowWhenAmountIsntHigherThanPreviousBet(): void
+    {
+        $this->expectException(InvalidPlayerBettingActionException::class);
+
+        $manager = $this->makeManager();
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, 0);
+        $manager->play("p2", PlayerBettingActionEnum::RAISE, 100, 0);
+
+        // You can't raise for the same amount as previous raise
+        $manager->play("p3", PlayerBettingActionEnum::RAISE, 100, 0);
+    }
+
+    public function testPotAccumulatesAcrossMultipleBets2(): void
+    {
+        $manager = $this->makeManager();
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, 0);
+        $manager->play("p2", PlayerBettingActionEnum::RAISE, 100, 0);
+        $manager->play("p3", PlayerBettingActionEnum::CALL, 100, 0);
+
+        $this->assertSame(250, $manager->getPotAmount());
+
+        $manager->play("p1", PlayerBettingActionEnum::RAISE, 125, 50);
+        $manager->play("p2", PlayerBettingActionEnum::RAISE, 150, 100);
+        $manager->play("p3", PlayerBettingActionEnum::RAISE, 200, 100);
+
+        $this->assertSame(475, $manager->getPotAmount());
+
+        $manager->play("p1", PlayerBettingActionEnum::CALL, 200, 125);
+        $manager->play("p2", PlayerBettingActionEnum::CALL, 200, 150);
+
+        $this->assertSame(600, $manager->getPotAmount());
     }
 
     public function testInitialPotIsIncludedInTotal(): void
     {
         $manager = $this->makeManager(pot: 100);
-        $manager->play("p1", PlayerBettingActionEnum::BET, 50);
+        $manager->play("p1", PlayerBettingActionEnum::BET, 50, 0);
 
         $this->assertSame(150, $manager->getPotAmount());
     }

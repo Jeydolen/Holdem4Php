@@ -56,7 +56,9 @@ class AskBlindPhase extends AbstractPhase
             $this->bettingManager->play(
                 $player->getUserId(),
                 $player_betting_action,
-                $amount
+                $amount,
+                // WE HAVE TO SAY PREVIOUS BET IS 0 BECAUSE BLIND IS MANDATORY
+                0
             );
 
             $player->sendMessage(["action" => "ack_bet"]);

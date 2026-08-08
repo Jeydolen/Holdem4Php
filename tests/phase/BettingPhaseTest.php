@@ -2,9 +2,12 @@
 
 namespace App\Tests\Phase;
 
+use App\Entity\User;
+
 use App\Event\PhaseState;
 use App\Event\PlayerAction;
 
+use App\Game\Bet\BettingManager;
 use App\Game\Bet\PlayerBettingActionEnum;
 
 use App\Game\Player\Player;
@@ -16,7 +19,8 @@ use App\Game\CardPile\BoardCards;
 use App\Game\Hand\HandContext;
 use App\Game\Hand\Phase\BettingPhase;
 
-use App\Game\Bet\BettingManager;
+use App\Game\WebSocket\ConnectionWrapper;
+
 use App\Service\CardRank\CardRankEvaluator;
 
 use Monolog\Logger;
@@ -25,6 +29,8 @@ use Monolog\Handler\StreamHandler;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\MockObject\MockObject;
+
+use Psr\Log\LoggerInterface;
 
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
@@ -36,6 +42,8 @@ class BettingPhaseTest extends TestCase
 
     private Deck&Stub $deck;
 
+    private LoggerInterface $logger;
+
     public function setUp(): void
     {
         $this->dispatchedActions = [];
@@ -46,17 +54,20 @@ class BettingPhaseTest extends TestCase
         $this->dispatcher->addListener(PhaseState::class, function (PhaseState $event) {
             $this->dispatchedActions[] = $event->getAction();
         });
-    }
 
-    private function makePhase(int $maxBettingAmount = 100, ?int $timeout = null): BettingPhase
-    {
         $logger = new Logger("test");
         if (getenv("DEBUG_LOG")) {
             $logger->pushHandler(new StreamHandler("php://stdout"));
         }
 
+        $this->logger = $logger;
+    }
+
+    private function makePhase(int $maxBettingAmount = 100, ?int $timeout = null): BettingPhase
+    {
+
         return BettingPhase::fromArray([
-            "logger" => $logger,
+            "logger" => $this->logger,
             "timeout" => $timeout,
             "maxBettingAmount" => $maxBettingAmount,
         ])->withEventDispatcher($this->dispatcher);
@@ -87,6 +98,18 @@ class BettingPhaseTest extends TestCase
         $player = $this->createStub(Player::class);
         $player->method("getUserId")->willReturn($id);
         $player->method("askBet");
+        return $player;
+    }
+
+    private function makeRealPlayer(string $id): Player&MockObject
+    {
+        $player = $this->createPartialMock(Player::class, ["getUserId", "getPublicState", "sendMessage", "askBet"]);
+        $player->__construct($this->createStub(User::class), $this->createStub(ConnectionWrapper::class), $this->logger);
+        $player->method("getUserId")->willReturn($id);
+        $player->setBankroll(1000);
+
+        // resetState instanciate hole_cards
+        $player->resetState();
         return $player;
     }
 
@@ -158,8 +181,8 @@ class BettingPhaseTest extends TestCase
 
     public function testAllPlayersActDispatchesNextPhase(): void
     {
-        $p1 = $this->makePlayerMock("p1");
-        $p2 = $this->makePlayer("p2");
+        $p1 = $this->makeRealPlayer("p1");
+        $p2 = $this->makeRealPlayer("p2");
 
         $p1->expects($this->exactly(2))->method("askBet");
 
@@ -270,5 +293,44 @@ class BettingPhaseTest extends TestCase
         $this->sendAction($p2, PlayerBettingActionEnum::CALL, 50);
 
         $this->assertContains("next_phase", $this->dispatchedActions);
+    }
+
+
+    public function testFullBettingPhase(): void
+    {
+        $p1 = $this->makeRealPlayer("p1");
+        $p2 = $this->makeRealPlayer("p2");
+        $p3 = $this->makeRealPlayer("p3");
+
+        // Every player should be asked bet 3 times
+        $p1->expects($this->exactly(3))->method("askBet");
+        $p2->expects($this->exactly(3))->method("askBet");
+        $p3->expects($this->exactly(3))->method("askBet");
+
+
+        $phase = $this->makePhase();
+        $players = [$p1, $p2, $p3];
+        $context = $this->makeHandContext($players);
+        $phase->play($context);
+
+        $this->sendAction($p1, PlayerBettingActionEnum::BET, 50);
+        $this->sendAction($p2, PlayerBettingActionEnum::RAISE, 100);
+        $this->sendAction($p3, PlayerBettingActionEnum::CALL, 100);
+
+        $this->assertSame(250, $context->getBettingManager()->getPotAmount());
+
+        $this->sendAction($p1, PlayerBettingActionEnum::RAISE, 125);
+        $this->sendAction($p2, PlayerBettingActionEnum::RAISE, 150);
+        $this->sendAction($p3, PlayerBettingActionEnum::RAISE, 200);
+
+        $this->assertSame(475, $context->getBettingManager()->getPotAmount());
+
+        $this->sendAction($p1, PlayerBettingActionEnum::CALL, 200);
+        $this->sendAction($p2, PlayerBettingActionEnum::CALL, 200);
+
+        $this->assertSame(600, $context->getBettingManager()->getPotAmount());
+
+        $this->expectException(\App\Exception\InvalidPlayerBettingActionException::class);
+        $this->sendAction($p3, PlayerBettingActionEnum::CHECK);
     }
 }
