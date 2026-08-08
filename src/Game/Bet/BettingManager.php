@@ -81,7 +81,7 @@ class BettingManager
         // TODO: Implement player all in
         $maxPlayerBet = null;
 
-        if (\in_array($playerAction, [PlayerBettingActionEnum::BET, PlayerBettingActionEnum::CALL])) {
+        if (\in_array($playerAction, [PlayerBettingActionEnum::BET, PlayerBettingActionEnum::CALL, PlayerBettingActionEnum::RAISE])) {
             if (empty($playerBet)) {
                 throw new InvalidPlayerBettingActionException();
             }
@@ -90,7 +90,10 @@ class BettingManager
             if (!$isAllIn) {
                 if ($playerAction === PlayerBettingActionEnum::CALL && $playerBet !== $this->minimalLegalBet) {
                     throw new InvalidPlayerBettingActionException();
-                } else if (\in_array($playerAction, [PlayerBettingActionEnum::BET, PlayerBettingActionEnum::RAISE]) && $playerBet < $this->minimalLegalBet) {
+                } else if ($playerAction === PlayerBettingActionEnum::BET && $playerBet < $this->minimalLegalBet) {
+                    throw new InvalidPlayerBettingActionException();
+                } else if ($playerAction === PlayerBettingActionEnum::RAISE && $playerBet <= $this->minimalLegalBet) {
+                    // Raise should be higher than previous bet, it can't be equal
                     throw new InvalidPlayerBettingActionException();
                 }
             }
@@ -105,7 +108,7 @@ class BettingManager
      * @param mixed $playerBet
      * @return bool True: if the action changed the bet amount (requires a new round), False: otherwise
      */
-    public function play(string $playerId, PlayerBettingActionEnum $playerAction, ?int $playerBet): bool
+    public function play(string $playerId, PlayerBettingActionEnum $playerAction, ?int $playerBet, ?int $playerTotalBettingAmount): bool
     {
         $this->validatePlayerAction($playerAction, $playerBet);
 
@@ -122,11 +125,11 @@ class BettingManager
 
         // Call does increment the bet but it is not a betting action per se
         if ($playerAction === PlayerBettingActionEnum::CALL) {
-            $this->registerBet($playerAction, $this->minimalLegalBet);
+            $this->registerBet($playerAction, $this->minimalLegalBet, $playerTotalBettingAmount);
         }
 
         if (\in_array($playerAction, static::NOTABLE_ACTIONS)) {
-            $this->registerBet($playerAction, $playerBet);
+            $this->registerBet($playerAction, $playerBet, $playerTotalBettingAmount);
             // Returns true because the bet level has changed; we need to loop back to the first player
             return true;
         }
@@ -134,9 +137,11 @@ class BettingManager
         return false;
     }
 
-    private function registerBet(PlayerBettingActionEnum $playerAction, int $playerBet): void
+    private function registerBet(PlayerBettingActionEnum $playerAction, int $playerBet, ?int $playerTotalBettingAmount): void
     {
-        $this->pot += $playerBet;
+        $amountToCall = $playerBet - ($playerTotalBettingAmount ?? 0);
+
+        $this->pot += $amountToCall;
         $this->minimalLegalBet = $playerBet;
         $this->previousNotableAction = $playerAction;
     }

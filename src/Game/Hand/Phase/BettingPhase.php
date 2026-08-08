@@ -31,6 +31,8 @@ class BettingPhase extends AbstractPhase
     private int $currentPlayerIndex = 0;
     private BettingManager $bettingManager;
 
+    private bool $isNewBettingRound = false;
+
     private function __construct(
         protected LoggerInterface $logger,
         private ?int $timeout,
@@ -131,6 +133,9 @@ class BettingPhase extends AbstractPhase
 
     public function onPlayerAction(PlayerAction $event): void
     {
+        /**
+         * @var Player[]
+         */
         $competingPlayers = array_values($this->context->getPlayerCollection()->getCompetingPlayers());
         $player = $event->getPlayer();
         $currentPlayer = $competingPlayers[$this->currentPlayerIndex] ?? null;
@@ -165,33 +170,61 @@ class BettingPhase extends AbstractPhase
         $this->logger->info("Player betting action", [
             "action" => $player_betting_action->value,
             "amount" => $data["betting_amount"] ?? 0,
-            "player_id" => $player->getUserId()
+            "player_id" => $player->getUserId(),
+            "player_total_bet_amount" => $player->getBetTotalAmount()
         ]);
 
         // play() now returns true ONLY if the bet amount changed (Raise/Bet)
-        $isNewBettingRound = $this->bettingManager->play(
+        $potAmountChanged = $this->bettingManager->play(
             $player->getUserId(),
             $player_betting_action,
-            $data["betting_amount"] ?? null
+            $data["betting_amount"] ?? null,
+            $player->getBetTotalAmount()
         );
 
         $player->sendMessage(["action" => "ack_bet"]);
 
         // We have to set the bet total amount when it is a notable action OR Call
-        if ($isNewBettingRound || $player_betting_action === PlayerBettingActionEnum::CALL) {
-            $player->setBetTotalAmount($player->getBetTotalAmount() + ($data["betting_amount"] ?? 0));
+        if ($potAmountChanged || $player_betting_action === PlayerBettingActionEnum::CALL) {
+            if ($potAmountChanged) {
+                $this->isNewBettingRound = true;
+            }
+
+            $amountToCall = $this->bettingManager->getMinimalLegalBet() - $player->getBetTotalAmount();
+
+            $player->setBetTotalAmount(($player->getBetTotalAmount() ?? 0) + $amountToCall);
             // Don't forget to remove player bankroll
-            $player->removeBankroll(($data["betting_amount"] ?? 0));
+            $player->removeBankroll($amountToCall);
             $this->dispatcher->dispatch(new PhaseState("pot_amount", ["pot_amount" => $this->bettingManager->getPotAmount()]));
         }
 
-        if ($isNewBettingRound) {
-            // If it's the last player in the list and they raised, we must restart the loop
-            if (empty($competingPlayers[$this->currentPlayerIndex + 1])) {
-                $this->logger->info("Betting level changed, resetting turn to first player");
-                // We set it to -1 so that nextPlayer() increments it to 0 (the first player)
-                $this->currentPlayerIndex = -1;
+        // If it's the last player in the list and they raised, we must restart the loop
+        if ($this->isNewBettingRound && empty($competingPlayers[$this->currentPlayerIndex + 1])) {
+            // We have to evaluate if every players did bet enough to continue
+            $needNewRound = false;
+            foreach ($competingPlayers as $player) {
+                // We have to verify everyone is at least on minimalLegalBet OR did allIn (i.e. no bankroll left)
+
+                // Player did allIn
+                if ($player->getBankroll() === 0) {
+                    continue;
+                }
+
+                if ($player->getBetTotalAmount() < $this->bettingManager->getMinimalLegalBet()) {
+                    $needNewRound = true;
+                }
             }
+
+            // We don't need a new round
+            if (!$needNewRound) {
+                $this->nextPlayer();
+                return;
+            }
+
+            $this->logger->info("Betting level changed, resetting turn to first player");
+            // We set it to -1 so that nextPlayer() increments it to 0 (the first player)
+            $this->currentPlayerIndex = -1;
+            $this->isNewBettingRound = false;
         }
 
         $this->nextPlayer();
