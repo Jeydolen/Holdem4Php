@@ -88,6 +88,8 @@ class VariantController extends AbstractController
             // Add stake
             $this->addStake($variant, $variantDTO->stake);
 
+            $this->em->persist($variant);
+
             $this->em->flush();
             $this->em->commit();
         } catch (Exception $e) {
@@ -100,6 +102,15 @@ class VariantController extends AbstractController
 
     private function setVariantEntity(VariantDTO $variantDTO, Variant $variant): Variant
     {
+        $variant->setName($variantDTO->name);
+        $variant->setMaxPlayers($variantDTO->maxPlayers);
+        $variant->setMinPlayerThreshold($variantDTO->minPlayerTreshold);
+
+        $variant->setStartingTimer($variantDTO->startingTimer);
+        $variant->setTableType($variantDTO->tableType->value);
+
+        $variant->setBettingType($variantDTO->bettingType->value);
+
         foreach ($variantDTO->phases as $phaseDTO) {
             $phase = new Phase();
             $phase->setPriority($phaseDTO->priority);

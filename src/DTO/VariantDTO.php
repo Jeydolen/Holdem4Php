@@ -22,6 +22,12 @@ class VariantDTO
     #[Positive()]
     public int $maxPlayers;
 
+    #[Positive()]
+    public ?int $minPlayerTreshold = null;
+
+    #[Positive()]
+    public ?int $startingTimer = null;
+
     #[NotBlank()]
     public TableTypeEnum $tableType;
 
