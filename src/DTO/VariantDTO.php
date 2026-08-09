@@ -8,7 +8,6 @@ use App\Enum\BettingTypeEnum;
 use App\DTO\Phase\PhaseDTO;
 
 use Symfony\Component\Validator\Constraints\Length;
-use Symfony\Component\Validator\Constraints\Range;
 use Symfony\Component\Validator\Constraints\Valid;
 use Symfony\Component\Validator\Constraints\Positive;
 use Symfony\Component\Validator\Constraints\NotBlank;
@@ -37,10 +36,5 @@ class VariantDTO
     public BettingTypeEnum $bettingType;
 
     #[NotBlank()]
-    #[Range(min: 1, max: 1_000_000)]
-    public int $minBuyIn;
-
-    #[NotBlank()]
-    #[Range(min: 1, max: 1_000_000)]
-    public int $maxBuyIn;
+    public StakeDTO $stake;
 }
