@@ -85,8 +85,10 @@ class VariantController extends AbstractController
             $variant = new Variant();
             $this->setVariantEntity($variantDTO, $variant);
 
-            // Add stake
-            $this->addStake($variant, $variantDTO->stake);
+            // Add stakes
+            foreach ($variantDTO->stakes as $stake) {
+                $this->addStake($variant, $stake);
+            }
 
             $this->em->persist($variant);
 
@@ -213,27 +215,9 @@ class VariantController extends AbstractController
 
             $this->setVariantEntity($variantDTO, $variant);
 
-            $this->em->flush();
-            $this->em->commit();
-        } catch (Exception $e) {
-            $this->em->rollback();
-            throw $e;
-        }
-
-        return $this->json(["variant" => $variant,], context: ["groups" => ["show_extended_variant", "show_phase", "show_card"]]);
-    }
-
-    #[Route("/update_stakes/{id}", methods: ["POST"])]
-    public function updateStakes(int $id, #[MapRequestPayload()] UpdateStakesDTO $updateStakesDTO): JsonResponse
-    {
-        try {
-            $this->em->beginTransaction();
-
-            $variant = $this->getVariantEntity($id);
-
+            // Add stakes
             $variant->getStakes()->clear();
-
-            foreach ($updateStakesDTO->stakes as $stake) {
+            foreach ($variantDTO->stakes as $stake) {
                 $this->addStake($variant, $stake);
             }
 
@@ -245,6 +229,5 @@ class VariantController extends AbstractController
         }
 
         return $this->json(["variant" => $variant,], context: ["groups" => ["show_extended_variant", "show_phase", "show_card"]]);
-
     }
 }

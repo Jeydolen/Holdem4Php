@@ -8,6 +8,7 @@ use App\Enum\BettingTypeEnum;
 use App\DTO\Phase\PhaseDTO;
 
 use Symfony\Component\Validator\Constraints\Length;
+use Symfony\Component\Validator\Constraints\Unique;
 use Symfony\Component\Validator\Constraints\Valid;
 use Symfony\Component\Validator\Constraints\Positive;
 use Symfony\Component\Validator\Constraints\NotBlank;
@@ -41,6 +42,9 @@ class VariantDTO
     #[NotBlank()]
     public BettingTypeEnum $bettingType;
 
+    /** @var StakeDTO[] */
+    #[Unique()]
+    #[Valid()]
     #[NotBlank()]
-    public StakeDTO $stake;
+    public array $stakes;
 }
