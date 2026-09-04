@@ -1,15 +1,48 @@
-version: '3.7'
+x-common-env: &common-env
+    DATABASE_USERNAME: ${DATABASE_USERNAME}
+    DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+    DATABASE_HOST: ${DATABASE_HOST}
+    DATABASE_PORT: ${DATABASE_PORT}
+    DATABASE_DATABASE: ${DATABASE_DATABASE}
+    APP_SECRET: ${APP_SECRET}
+    APP_ENV: ${APP_ENV}
+    AUTH_PRIVATE_KEY_PATH: ${AUTH_PRIVATE_KEY_PATH}
+    AUTH_PUBLIC_KEY_PATH: ${AUTH_PUBLIC_KEY_PATH}
+
+
 services:
     database:
+        hostname: ${DATABASE_HOST}
         restart: always
         image: 'postgres:alpine'
         environment:
-            POSTGRES_PASSWORD: main
-            POSTGRES_USER: main
-            POSTGRES_DB: main
+            POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+            POSTGRES_USER: ${DATABASE_USERNAME}
+            POSTGRES_DB: ${DATABASE_DATABASE}
         ports:
             # To allow the host machine to access the ports below, modify the lines below.
             # For example, to allow the host to connect to port 3306 on the container, you would change
             # "3306" to "3306:3306". Where the first port is exposed to the host and the second is the container port.
             # See https://docs.docker.com/compose/compose-file/compose-file-v3/#ports for more information.
             - '5432:5432'
+        volumes:
+            - /var/data:/var/lib/postgresql
+
+    api:
+        restart: always
+        image: holdem4php
+        environment:
+            <<: *common-env
+        depends_on:
+            - database
+        volumes:
+            - ./keys:/app/keys
+        command: "php-fpm84 -F"
+    websocket:
+        image: holdem4php
+        environment:
+            <<: *common-env
+        depends_on:
+            - database
+        volumes:
+            - ./keys:/app/keys

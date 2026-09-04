@@ -24,10 +24,8 @@ final class Version20260721094131 extends AbstractMigration
         $this->addSql('CREATE INDEX IDX_6EC9DC653B69A9AF ON stake (variant_id)');
         $this->addSql('ALTER TABLE stake ADD CONSTRAINT FK_6EC9DC653B69A9AF FOREIGN KEY (variant_id) REFERENCES variant (variant_id) NOT DEFERRABLE');
         $this->addSql('ALTER TABLE variant_stakes DROP CONSTRAINT fk_33e234d63b69a9af');
-        $this->addSql('ALTER TABLE "table" DROP CONSTRAINT fk_f6298f4678b87d1a');
         $this->addSql('DROP TABLE variant_stakes');
-        $this->addSql('DROP INDEX uniq_f6298f4678b87d1a');
-        $this->addSql('ALTER TABLE "table" RENAME COLUMN variant_stake_id TO stake_id');
+        $this->addSql('ALTER TABLE "table" ADD stake_id INT NOT NULL');
         $this->addSql('ALTER TABLE "table" ADD CONSTRAINT FK_F6298F46E7683C92 FOREIGN KEY (stake_id) REFERENCES stake (id) NOT DEFERRABLE');
         $this->addSql('CREATE UNIQUE INDEX UNIQ_F6298F46E7683C92 ON "table" (stake_id)');
     }
@@ -42,8 +40,6 @@ final class Version20260721094131 extends AbstractMigration
         $this->addSql('DROP TABLE stake');
         $this->addSql('ALTER TABLE "table" DROP CONSTRAINT FK_F6298F46E7683C92');
         $this->addSql('DROP INDEX UNIQ_F6298F46E7683C92');
-        $this->addSql('ALTER TABLE "table" RENAME COLUMN stake_id TO variant_stake_id');
-        $this->addSql('ALTER TABLE "table" ADD CONSTRAINT fk_f6298f4678b87d1a FOREIGN KEY (variant_stake_id) REFERENCES variant_stakes (id) NOT DEFERRABLE INITIALLY IMMEDIATE');
-        $this->addSql('CREATE UNIQUE INDEX uniq_f6298f4678b87d1a ON "table" (variant_stake_id)');
+        $this->addSql('ALTER TABLE "table" DROP COLUMN stake_id');
     }
 }

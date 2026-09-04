@@ -30,11 +30,11 @@ class CreateUserCommand extends Command
     }
 
     public function __invoke(
+        InputInterface $input,
+        OutputInterface $output,
         #[Argument("The displayed name for the user. Also used for authentication.")] string $username,
         #[Argument("The user password")] string $password,
         #[Argument("Whether the user is granted the admin role")] ?bool $is_admin = false,
-        InputInterface $input,
-        OutputInterface $output
     ): int {
         $io = new SymfonyStyle($input, $output);
 
